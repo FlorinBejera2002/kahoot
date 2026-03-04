@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200">
+  <!-- Background -->
+  <circle cx="100" cy="100" r="100" fill="#D89E00"/>
+  <!-- Head -->
+  <circle cx="100" cy="75" r="35" fill="white" opacity="0.9"/>
+  <!-- Body -->
+  <ellipse cx="100" cy="170" rx="55" ry="50" fill="white" opacity="0.9"/>
+  <!-- Surprised wide eyes -->
+  <circle cx="87" cy="68" r="7" fill="#D89E00"/>
+  <circle cx="113" cy="68" r="7" fill="#D89E00"/>
+  <!-- Eyebrows raised -->
+  <line x1="80" y1="57" x2="94" y2="58" stroke="#D89E00" stroke-width="3" stroke-linecap="round"/>
+  <line x1="106" y1="58" x2="120" y2="57" stroke="#D89E00" stroke-width="3" stroke-linecap="round"/>
+  <!-- Surprised "O" mouth -->
+  <ellipse cx="100" cy="88" rx="8" ry="10" fill="#D89E00"/>
+</svg>

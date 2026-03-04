@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200">
+  <!-- Background -->
+  <circle cx="100" cy="100" r="100" fill="#009688"/>
+  <!-- Head -->
+  <circle cx="100" cy="75" r="35" fill="white" opacity="0.9"/>
+  <!-- Body -->
+  <ellipse cx="100" cy="170" rx="55" ry="50" fill="white" opacity="0.9"/>
+  <!-- Nerdy glasses - left lens -->
+  <circle cx="87" cy="70" r="12" fill="none" stroke="#009688" stroke-width="3"/>
+  <!-- Nerdy glasses - right lens -->
+  <circle cx="113" cy="70" r="12" fill="none" stroke="#009688" stroke-width="3"/>
+  <!-- Glasses bridge -->
+  <line x1="99" y1="70" x2="101" y2="70" stroke="#009688" stroke-width="3"/>
+  <!-- Glasses arms -->
+  <line x1="75" y1="68" x2="68" y2="65" stroke="#009688" stroke-width="2" stroke-linecap="round"/>
+  <line x1="125" y1="68" x2="132" y2="65" stroke="#009688" stroke-width="2" stroke-linecap="round"/>
+  <!-- Eyes behind glasses -->
+  <circle cx="87" cy="70" r="4" fill="#009688"/>
+  <circle cx="113" cy="70" r="4" fill="#009688"/>
+  <!-- Small smart smile -->
+  <path d="M 90 87 Q 100 93 110 87" stroke="#009688" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+</svg>
