@@ -59,14 +59,20 @@ export default function PlayerGameView() {
       setShowScorePopup(false);
       setResultFlash(null);
 
-      const { data: q } = await supabase
-        .from('questions')
-        .select('id, text, image_url, time_limit_seconds, points')
-        .eq('id', updated.current_question_id)
-        .single();
+      const [{ data: q }, { data: ans }] = await Promise.all([
+        supabase.from('questions')
+          .select('id, text, image_url, time_limit_seconds, points')
+          .eq('id', updated.current_question_id)
+          .single(),
+        supabase.from('answers')
+          .select('id, text, color, order_index')
+          .eq('question_id', updated.current_question_id)
+          .order('order_index'),
+      ]);
 
       if (q) {
         setCurrentQuestion(q);
+        if (ans) setAnswers(ans);
         setQuestionIndex(updated.current_question_index);
         setStatus('countdown');
 
@@ -80,14 +86,23 @@ export default function PlayerGameView() {
             playCountdownTick();
           } else {
             clearInterval(iv);
-            setCountdown(null);
             playGo();
+            setTimeout(() => {
+              setCountdown(null);
+              setStatus('answering');
+              questionStartRef.current = Date.now();
+              startTimer(q.time_limit_seconds);
+            }, 300);
           }
         }, 1000);
       }
     }
 
     if (updated.status === 'answering') {
+      // Already transitioned locally when countdown ended — skip to avoid double-starting timer.
+      // Keep as fallback for players who missed the showing_question event (e.g. page reload).
+      if (status === 'answering') return;
+
       if (updated.current_question_id) {
         const { data: ans } = await supabase
           .from('answers')

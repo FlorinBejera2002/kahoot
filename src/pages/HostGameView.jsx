@@ -79,7 +79,7 @@ export default function HostGameView() {
 
     if (gs.status === 'showing_question') {
       setStatus('showing_question');
-      runCountdown(() => startAnswering(gs));
+      runCountdown(() => startAnswering(gs, q));
     } else if (gs.status === 'answering') {
       setStatus('answering');
       const elapsed = gs.question_started_at
@@ -108,18 +108,17 @@ export default function HostGameView() {
         playCountdownTick();
       } else {
         clearInterval(iv);
-        setCountdown(null);
         playGo();
-        onDone();
+        setTimeout(() => { setCountdown(null); onDone(); }, 300);
       }
     }, 1000);
   };
 
-  const startAnswering = async (gs) => {
+  const startAnswering = async (gs, questionData) => {
     const sessionId = gs?.id || gameSession?.id;
     await supabase.rpc('start_answering', { p_game_session_id: sessionId });
     setStatus('answering');
-    const q = currentQuestion;
+    const q = questionData || currentQuestion;
     if (q) startTimer(q.time_limit_seconds);
   };
 
@@ -159,7 +158,7 @@ export default function HostGameView() {
     setAnswers(fullQ.answers.sort((a, b) => a.order_index - b.order_index));
     setQuestionIndex(data.question_index);
 
-    runCountdown(() => startAnswering(null));
+    runCountdown(() => startAnswering(null, fullQ));
   };
 
   const loadPodium = async (sessionId) => {
