@@ -10,7 +10,7 @@ export default function PlayerList({ players = [], onKick, showKick = false }) {
             <div key={d} className="w-3 h-3 bg-primary rounded-full animate-bounce" style={{ animationDelay: `${d}ms` }} />
           ))}
         </div>
-        <p className="text-white/40">Waiting for players to join...</p>
+        <p className="text-gray-400">Waiting for players to join...</p>
       </div>
     );
   }
@@ -23,11 +23,11 @@ export default function PlayerList({ players = [], onKick, showKick = false }) {
           className="card flex items-center gap-3 p-3 group animate-scale-in"
         >
           <Avatar src={player.avatar_url} name={player.nickname} size="sm" />
-          <span className="font-medium flex-1 truncate text-sm">{player.nickname}</span>
+          <span className="font-medium flex-1 truncate text-sm text-gray-900">{player.nickname}</span>
           {showKick && onKick && (
             <button
               onClick={() => onKick(player.id)}
-              className="text-white/20 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100"
+              className="text-gray-300 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100"
             >
               <X size={16} />
             </button>

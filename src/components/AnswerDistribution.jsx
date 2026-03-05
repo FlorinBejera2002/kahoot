@@ -7,17 +7,17 @@ export default function AnswerDistribution({ distribution = [] }) {
     <div className="flex items-end justify-center gap-4 h-48 mb-8">
       {distribution.map((answer) => {
         const height = ((answer.count || 0) / maxCount) * 100;
-        const bgClass = ANSWER_COLORS[answer.color]?.bg || 'bg-white/20';
+        const bgClass = ANSWER_COLORS[answer.color]?.bg || 'bg-gray-300';
 
         return (
           <div key={answer.answer_id || answer.id} className="flex flex-col items-center gap-2 flex-1 max-w-[120px]">
-            <span className="font-bold text-sm">{answer.count || 0}</span>
+            <span className="font-bold text-sm text-gray-900">{answer.count || 0}</span>
             <div
-              className={`w-full rounded-t-lg transition-all duration-700 ${bgClass} ${answer.is_correct ? 'ring-4 ring-white/50' : ''}`}
+              className={`w-full rounded-t-lg transition-all duration-700 ${bgClass} ${answer.is_correct ? 'ring-4 ring-green-300' : ''}`}
               style={{ height: `${Math.max(height, 5)}%`, minHeight: '20px' }}
             />
-            <span className="text-xs text-white/60 text-center truncate w-full">{answer.text}</span>
-            {answer.is_correct && <span className="text-xs text-green-400 font-medium">Correct</span>}
+            <span className="text-xs text-gray-500 text-center truncate w-full">{answer.text}</span>
+            {answer.is_correct && <span className="text-xs text-green-600 font-medium">Correct</span>}
           </div>
         );
       })}

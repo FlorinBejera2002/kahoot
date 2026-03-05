@@ -8,10 +8,10 @@ import { COLOR_ORDER, TIME_OPTIONS } from '../lib/constants';
 import toast from 'react-hot-toast';
 
 const COLOR_STYLES = {
-  red: 'border-kahoot-red/50 bg-kahoot-red/10',
-  blue: 'border-kahoot-blue/50 bg-kahoot-blue/10',
-  green: 'border-kahoot-green/50 bg-kahoot-green/10',
-  yellow: 'border-kahoot-yellow/50 bg-kahoot-yellow/10',
+  red: 'border-kahoot-red/30 bg-red-50',
+  blue: 'border-kahoot-blue/30 bg-blue-50',
+  green: 'border-kahoot-green/30 bg-green-50',
+  yellow: 'border-kahoot-yellow/30 bg-amber-50',
 };
 
 const newQuestion = () => ({
@@ -142,14 +142,14 @@ export default function QuizEditor() {
   const cur = questions[sel];
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <header className="border-b border-white/10 bg-white/5 backdrop-blur-sm px-4 py-3">
+    <div className="min-h-screen flex flex-col bg-gray-50">
+      <header className="border-b border-gray-200 bg-white shadow-sm px-4 py-3">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <button onClick={() => navigate('/dashboard')} className="flex items-center gap-2 text-white/60 hover:text-white">
+          <button onClick={() => navigate('/dashboard')} className="flex items-center gap-2 text-gray-500 hover:text-gray-900">
             <ArrowLeft size={20} /> Back
           </button>
           <input type="text" value={title} onChange={(e) => setTitle(e.target.value)}
-            className="bg-transparent text-xl font-bold font-display text-center focus:outline-none border-b border-transparent hover:border-white/20 focus:border-primary px-4 py-1"
+            className="bg-transparent text-xl font-bold font-display text-center text-gray-900 focus:outline-none border-b-2 border-transparent hover:border-gray-200 focus:border-primary px-4 py-1"
             placeholder="Quiz Title" />
           <button onClick={saveQuiz} disabled={saving} className="btn-primary text-sm flex items-center gap-2">
             {saving ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Save size={16} />} Save
@@ -158,11 +158,11 @@ export default function QuizEditor() {
       </header>
 
       <div className="flex-1 flex max-w-7xl mx-auto w-full">
-        <aside className="w-64 border-r border-white/10 p-4 overflow-y-auto">
+        <aside className="w-64 border-r border-gray-200 bg-white p-4 overflow-y-auto">
           <textarea value={description} onChange={(e) => setDescription(e.target.value)}
             placeholder="Description (optional)" className="input-field text-sm resize-none h-16 mb-2" />
-          <label className="flex items-center gap-2 mb-4 text-sm text-white/60 cursor-pointer">
-            <input type="checkbox" checked={isPublic} onChange={(e) => setIsPublic(e.target.checked)} className="rounded" /> Public quiz
+          <label className="flex items-center gap-2 mb-4 text-sm text-gray-500 cursor-pointer">
+            <input type="checkbox" checked={isPublic} onChange={(e) => setIsPublic(e.target.checked)} className="rounded accent-primary" /> Public quiz
           </label>
 
           <DragDropContext onDragEnd={handleDragEnd}>
@@ -174,11 +174,11 @@ export default function QuizEditor() {
                       {(prov, snap) => (
                         <div ref={prov.innerRef} {...prov.draggableProps} onClick={() => setSel(i)}
                           className={`flex items-center gap-2 p-2 rounded-lg cursor-pointer text-sm transition-all
-                            ${sel === i ? 'bg-primary/30 border border-primary/50' : 'bg-white/5 border border-transparent hover:bg-white/10'}
+                            ${sel === i ? 'bg-red-50 border border-primary/30 text-primary' : 'bg-gray-50 border border-transparent hover:bg-gray-100 text-gray-700'}
                             ${snap.isDragging ? 'shadow-lg' : ''}`}>
-                          <span {...prov.dragHandleProps}><GripVertical size={14} className="text-white/30" /></span>
+                          <span {...prov.dragHandleProps}><GripVertical size={14} className="text-gray-400" /></span>
                           <span className="flex-1 truncate">{q.text || `Question ${i + 1}`}</span>
-                          <button onClick={(e) => { e.stopPropagation(); deleteQuestion(i); }} className="text-white/30 hover:text-red-400">
+                          <button onClick={(e) => { e.stopPropagation(); deleteQuestion(i); }} className="text-gray-400 hover:text-red-500">
                             <Trash2 size={14} />
                           </button>
                         </div>
@@ -191,26 +191,26 @@ export default function QuizEditor() {
             </Droppable>
           </DragDropContext>
 
-          <button onClick={addQuestion} className="w-full mt-3 py-2 border border-dashed border-white/20 rounded-lg text-white/50 hover:text-white hover:border-white/40 flex items-center justify-center gap-2 text-sm">
+          <button onClick={addQuestion} className="w-full mt-3 py-2 border border-dashed border-gray-300 rounded-lg text-gray-500 hover:text-primary hover:border-primary flex items-center justify-center gap-2 text-sm transition-colors">
             <Plus size={16} /> Add Question
           </button>
         </aside>
 
-        <main className="flex-1 p-6 overflow-y-auto">
+        <main className="flex-1 p-6 overflow-y-auto bg-gray-50">
           {cur ? (
             <div className="max-w-2xl mx-auto space-y-6 animate-fade-in" key={sel}>
               <div>
-                <label className="block text-sm text-white/60 mb-1">Question Text</label>
+                <label className="block text-sm text-gray-600 mb-1 font-medium">Question Text</label>
                 <textarea value={cur.text} onChange={(e) => updateQ('text', e.target.value)}
                   className="input-field text-lg font-semibold resize-none h-24" placeholder="Type your question..." />
               </div>
 
               <div>
-                <label className="block text-sm text-white/60 mb-1">Image (optional)</label>
+                <label className="block text-sm text-gray-600 mb-1 font-medium">Image (optional)</label>
                 {cur.image_url ? (
                   <div className="relative inline-block">
                     <img src={cur.image_url} alt="" className="max-h-40 rounded-lg" />
-                    <button onClick={() => updateQ('image_url', '')} className="absolute -top-2 -right-2 bg-red-500 rounded-full p-1"><Trash2 size={12} /></button>
+                    <button onClick={() => updateQ('image_url', '')} className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1"><Trash2 size={12} /></button>
                   </div>
                 ) : (
                   <label className="btn-secondary text-sm cursor-pointer inline-flex items-center gap-2 py-2">
@@ -222,29 +222,29 @@ export default function QuizEditor() {
 
               <div className="flex gap-4">
                 <div className="flex-1">
-                  <label className="block text-sm text-white/60 mb-1"><Clock size={14} className="inline mr-1" />Time Limit</label>
+                  <label className="block text-sm text-gray-600 mb-1 font-medium"><Clock size={14} className="inline mr-1" />Time Limit</label>
                   <select value={cur.time_limit_seconds} onChange={(e) => updateQ('time_limit_seconds', Number(e.target.value))} className="input-field">
-                    {TIME_OPTIONS.map((t) => <option key={t} value={t} className="bg-gray-900">{t}s</option>)}
+                    {TIME_OPTIONS.map((t) => <option key={t} value={t}>{t}s</option>)}
                   </select>
                 </div>
                 <div className="flex-1">
-                  <label className="block text-sm text-white/60 mb-1">Points</label>
+                  <label className="block text-sm text-gray-600 mb-1 font-medium">Points</label>
                   <input type="number" value={cur.points} onChange={(e) => updateQ('points', Number(e.target.value))}
                     className="input-field" min={100} max={5000} step={100} />
                 </div>
               </div>
 
               <div>
-                <label className="block text-sm text-white/60 mb-2">Answers</label>
+                <label className="block text-sm text-gray-600 mb-2 font-medium">Answers</label>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {cur.answers.map((a, ai) => (
-                    <div key={ai} className={`border rounded-lg p-3 ${COLOR_STYLES[COLOR_ORDER[ai]]}`}>
+                    <div key={ai} className={`border-2 rounded-lg p-3 ${COLOR_STYLES[COLOR_ORDER[ai]]}`}>
                       <div className="flex items-center gap-2">
                         <input type="text" value={a.text} onChange={(e) => updateA(ai, 'text', e.target.value)}
-                          className="flex-1 bg-transparent border-none focus:outline-none text-white placeholder-white/30"
+                          className="flex-1 bg-transparent border-none focus:outline-none text-gray-900 placeholder-gray-400"
                           placeholder={`Answer ${ai + 1}`} />
                         <button onClick={() => updateA(ai, 'is_correct', true)}
-                          className={`p-1 rounded-full transition-all ${a.is_correct ? 'bg-green-500 text-white' : 'bg-white/10 text-white/30 hover:bg-white/20'}`}>
+                          className={`p-1 rounded-full transition-all ${a.is_correct ? 'bg-green-500 text-white' : 'bg-gray-200 text-gray-400 hover:bg-gray-300'}`}>
                           <Check size={16} />
                         </button>
                       </div>
@@ -254,7 +254,7 @@ export default function QuizEditor() {
               </div>
             </div>
           ) : (
-            <div className="flex flex-col items-center justify-center h-full text-white/40">
+            <div className="flex flex-col items-center justify-center h-full text-gray-400">
               <p className="text-xl mb-4">No questions yet</p>
               <button onClick={addQuestion} className="btn-primary">Add Your First Question</button>
             </div>

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Play, Users, Zap, QrCode } from 'lucide-react';
+import { Play, Users, QrCode } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { supabase } from '../lib/supabase';
 import { useGame } from '../hooks/useGame';
@@ -77,36 +77,36 @@ export default function HostLobby() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-center py-8 px-4">
-      <div className="flex items-center gap-2 mb-8">
-        <Zap size={28} className="text-yellow-400" />
-        <h1 className="text-2xl font-bold font-display">QuizBlitz</h1>
+    <div className="min-h-screen flex flex-col items-center py-8 px-4 bg-gray-50">
+      <div className="flex items-center gap-3 mb-8">
+        <img src="/logo.png" alt="QuizBlitz" className="h-10 w-auto" />
+        <h1 className="text-2xl font-bold font-display text-gray-900">QuizBlitz</h1>
       </div>
 
       <div className="flex flex-col md:flex-row items-center gap-8 mb-8">
         <div className="text-center">
           <GamePin pin={pin} />
-          <p className="text-white/50 mt-4">Share this PIN or scan the QR code!</p>
-          <button onClick={() => setShowQR(!showQR)} className="text-primary-light text-sm mt-2 hover:underline flex items-center gap-1 mx-auto">
+          <p className="text-gray-500 mt-4">Share this PIN or scan the QR code!</p>
+          <button onClick={() => setShowQR(!showQR)} className="text-primary text-sm mt-2 hover:underline flex items-center gap-1 mx-auto font-medium">
             <QrCode size={14} /> {showQR ? 'Hide' : 'Show'} QR Code
           </button>
         </div>
 
         {showQR && (
-          <div className="bg-white p-4 rounded-xl animate-scale-in">
+          <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-200 animate-scale-in">
             <QRCodeSVG value={joinUrl} size={200} level="H" />
           </div>
         )}
       </div>
 
-      <div className="flex items-center gap-2 text-white/60 mb-4">
+      <div className="flex items-center gap-2 text-gray-500 mb-4">
         <Users size={20} />
         <span className="font-medium">{players.filter((p) => p.is_active !== false).length} players</span>
       </div>

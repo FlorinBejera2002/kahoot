@@ -4,9 +4,9 @@ import { formatScore } from '../utils/scoring';
 import { Trophy } from 'lucide-react';
 
 const CONFIG = [
-  { place: 2, h: 'h-28', label: '2nd', grad: 'from-gray-400 to-gray-500' },
-  { place: 1, h: 'h-40', label: '1st', grad: 'from-yellow-400 to-yellow-600' },
-  { place: 3, h: 'h-20', label: '3rd', grad: 'from-amber-600 to-amber-800' },
+  { place: 2, h: 'h-28', label: '2nd', grad: 'from-gray-300 to-gray-400' },
+  { place: 1, h: 'h-40', label: '1st', grad: 'from-amber-400 to-amber-500' },
+  { place: 3, h: 'h-20', label: '3rd', grad: 'from-amber-600 to-amber-700' },
 ];
 
 export default function Podium({ players = [] }) {
@@ -16,9 +16,9 @@ export default function Podium({ players = [] }) {
     <div className="flex flex-col items-center w-full max-w-lg mx-auto">
       <Confetti />
       <div className="flex items-center gap-2 mb-8 animate-bounce-in">
-        <Trophy className="text-yellow-400" size={32} />
-        <h2 className="text-3xl font-bold font-display">Final Results</h2>
-        <Trophy className="text-yellow-400" size={32} />
+        <Trophy className="text-amber-500" size={32} />
+        <h2 className="text-3xl font-bold font-display text-gray-900">Final Results</h2>
+        <Trophy className="text-amber-500" size={32} />
       </div>
 
       <div className="flex items-end justify-center gap-4 w-full mb-8">
@@ -31,10 +31,10 @@ export default function Podium({ players = [] }) {
               <div className="animate-bounce-in" style={{ animationDelay: `${idx * 200 + 300}ms` }}>
                 <Avatar src={p.avatar_url} name={p.nickname} size={cfg.place === 1 ? 'lg' : 'md'} />
               </div>
-              <p className="font-bold mt-2 text-sm truncate max-w-full">{p.nickname}</p>
-              <p className="text-white/60 text-xs mb-2">{formatScore(p.total_score)} pts</p>
+              <p className="font-bold mt-2 text-sm truncate max-w-full text-gray-900">{p.nickname}</p>
+              <p className="text-gray-500 text-xs mb-2">{formatScore(p.total_score)} pts</p>
               <div className={`w-full ${cfg.h} bg-gradient-to-t ${cfg.grad} rounded-t-lg flex items-center justify-center`}>
-                <span className="text-2xl font-bold text-white/90">{cfg.label}</span>
+                <span className="text-2xl font-bold text-white">{cfg.label}</span>
               </div>
             </div>
           );

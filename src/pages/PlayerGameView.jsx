@@ -71,7 +71,6 @@ export default function PlayerGameView() {
     }
 
     if (updated.status === 'answering') {
-      // Load answers now that game is in answering mode
       if (updated.current_question_id) {
         const { data: ans } = await supabase
           .from('answers')
@@ -124,21 +123,21 @@ export default function PlayerGameView() {
   if (!playerSession) return null;
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center px-4 py-8">
+    <div className="min-h-screen flex flex-col items-center justify-center px-4 py-8 bg-gray-50">
 
       {status === 'waiting' && (
         <div className="text-center animate-fade-in">
           <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-xl">Waiting for next question...</p>
+          <p className="text-xl text-gray-700">Waiting for next question...</p>
         </div>
       )}
 
       {status === 'countdown' && countdown !== null && (
         <div className="text-center animate-bounce-in" key={`c-${countdown}`}>
-          <div className="text-8xl font-bold font-display text-primary-light">
+          <div className="text-8xl font-bold font-display text-primary">
             {countdown === 0 ? 'GO!' : countdown}
           </div>
-          <p className="text-white/50 mt-4">Get ready!</p>
+          <p className="text-gray-500 mt-4">Get ready!</p>
         </div>
       )}
 
@@ -147,7 +146,7 @@ export default function PlayerGameView() {
           <div className="flex justify-center mb-4">
             <Timer timeLeft={timeLeft} totalTime={currentQuestion.time_limit_seconds} />
           </div>
-          <p className="text-center text-white/70 text-sm mb-4">
+          <p className="text-center text-gray-600 text-sm mb-4">
             Q{questionIndex + 1}: {currentQuestion.text}
           </p>
           <AnswerGrid answers={answers} onAnswer={handleAnswer} disabled={hasAnswered} selectedId={selectedAnswerId} />
@@ -157,41 +156,41 @@ export default function PlayerGameView() {
       {status === 'answered' && answerResult && (
         <div className="text-center animate-scale-in">
           {answerResult.is_correct ? (
-            <CheckCircle size={80} className="text-green-400 mx-auto mb-4 animate-bounce-in" />
+            <CheckCircle size={80} className="text-green-500 mx-auto mb-4 animate-bounce-in" />
           ) : (
-            <XCircle size={80} className="text-red-400 mx-auto mb-4 animate-shake" />
+            <XCircle size={80} className="text-red-500 mx-auto mb-4 animate-shake" />
           )}
-          <h2 className="text-3xl font-bold font-display mb-2">
+          <h2 className="text-3xl font-bold font-display mb-2 text-gray-900">
             {answerResult.is_correct ? 'Correct!' : 'Wrong!'}
           </h2>
-          <p className="text-2xl font-bold text-primary-light">+{formatScore(answerResult.points_earned)} points</p>
+          <p className="text-2xl font-bold text-primary">+{formatScore(answerResult.points_earned)} points</p>
           {answerResult.streak > 1 && (
-            <div className="flex items-center justify-center gap-2 text-orange-400 mt-3">
+            <div className="flex items-center justify-center gap-2 text-amber-500 mt-3">
               <Flame size={20} /> <span className="font-bold">{answerResult.streak} streak!</span>
             </div>
           )}
-          <p className="text-white/50 mt-4">Total: {formatScore(answerResult.total_score)}</p>
+          <p className="text-gray-500 mt-4">Total: {formatScore(answerResult.total_score)}</p>
         </div>
       )}
 
       {status === 'showing_results' && (
         <div className="text-center w-full max-w-md animate-slide-up">
-          <Trophy size={40} className="text-yellow-400 mx-auto mb-4" />
-          <h2 className="text-2xl font-bold font-display mb-4">Results</h2>
+          <Trophy size={40} className="text-accent mx-auto mb-4" />
+          <h2 className="text-2xl font-bold font-display mb-4 text-gray-900">Results</h2>
           {answerResult && (
-            <p className="text-lg mb-4">
-              You scored <span className="font-bold text-primary-light">{formatScore(answerResult.points_earned)}</span> points
+            <p className="text-lg mb-4 text-gray-700">
+              You scored <span className="font-bold text-primary">{formatScore(answerResult.points_earned)}</span> points
             </p>
           )}
-          <p className="text-white/40">Next question coming up...</p>
+          <p className="text-gray-400">Next question coming up...</p>
         </div>
       )}
 
       {status === 'time_up' && !hasAnswered && (
         <div className="text-center animate-scale-in">
-          <XCircle size={80} className="text-red-400 mx-auto mb-4" />
-          <h2 className="text-3xl font-bold font-display">Time's up!</h2>
-          <p className="text-white/50 mt-2">You didn't answer in time</p>
+          <XCircle size={80} className="text-red-500 mx-auto mb-4" />
+          <h2 className="text-3xl font-bold font-display text-gray-900">Time's up!</h2>
+          <p className="text-gray-500 mt-2">You didn't answer in time</p>
         </div>
       )}
     </div>

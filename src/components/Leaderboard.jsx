@@ -5,7 +5,7 @@ export default function Leaderboard({ players = [], maxShow = 5, title = 'Leader
 
   return (
     <div className="w-full max-w-md mx-auto">
-      <h3 className="text-xl font-bold mb-4 text-center font-display">{title}</h3>
+      <h3 className="text-xl font-bold mb-4 text-center font-display text-gray-900">{title}</h3>
       <div className="space-y-2">
         {sorted.map((player, i) => (
           <PlayerCard
@@ -15,7 +15,7 @@ export default function Leaderboard({ players = [], maxShow = 5, title = 'Leader
           />
         ))}
       </div>
-      {players.length === 0 && <p className="text-center text-white/40 py-8">No players yet</p>}
+      {players.length === 0 && <p className="text-center text-gray-400 py-8">No players yet</p>}
     </div>
   );
 }

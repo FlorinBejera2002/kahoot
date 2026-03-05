@@ -19,7 +19,7 @@ function AdminRoute({ children }) {
   const { isAdmin, loading } = useAdmin();
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
       </div>
     );
@@ -55,9 +55,9 @@ export default function App() {
         <Toaster
           position="top-center"
           toastOptions={{
-            style: { background: '#1a0533', color: '#fff', border: '1px solid rgba(255,255,255,0.1)' },
-            success: { iconTheme: { primary: '#26890C', secondary: '#fff' } },
-            error: { iconTheme: { primary: '#E21B3C', secondary: '#fff' } },
+            style: { background: '#ffffff', color: '#111827', border: '1px solid #e5e7eb', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' },
+            success: { iconTheme: { primary: '#16a34a', secondary: '#fff' } },
+            error: { iconTheme: { primary: '#DC2626', secondary: '#fff' } },
           }}
         />
       </GameProvider>

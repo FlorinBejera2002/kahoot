@@ -4,17 +4,22 @@ export default {
   theme: {
     extend: {
       colors: {
-        primary: { DEFAULT: '#6C2BD9', dark: '#46178F', light: '#864af9' },
+        primary: { DEFAULT: '#DC2626', dark: '#b91c1c', light: '#ef4444' },
+        accent: '#EAC243',
+        surface: {
+          DEFAULT: '#ffffff',
+          secondary: '#f9fafb',
+          dark: '#111827',
+        },
         kahoot: {
-          red: '#E21B3C',
-          blue: '#1368CE',
-          yellow: '#D89E00',
-          green: '#26890C',
-          dark: '#1a0533',
+          red: '#DC2626',
+          blue: '#2563eb',
+          yellow: '#d97706',
+          green: '#16a34a',
         },
       },
       fontFamily: {
-        sans: ['Inter', 'Poppins', 'system-ui', 'sans-serif'],
+        sans: ['Poppins', 'Inter', 'system-ui', 'sans-serif'],
         display: ['Poppins', 'Inter', 'system-ui', 'sans-serif'],
       },
       keyframes: {

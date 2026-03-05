@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { ArrowRight, ArrowLeft, Zap } from 'lucide-react';
+import { ArrowRight, ArrowLeft } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useGame } from '../hooks/useGame';
 import AvatarPicker from '../components/AvatarPicker';
@@ -20,6 +20,20 @@ export default function JoinGame() {
     const pinParam = searchParams.get('pin');
     if (pinParam && /^\d{6}$/.test(pinParam)) {
       setPin(pinParam);
+      // Auto-validate PIN from QR code and skip to step 2
+      (async () => {
+        const { data, error } = await supabase
+          .from('game_sessions')
+          .select('*')
+          .eq('game_pin', pinParam)
+          .eq('status', 'lobby')
+          .single();
+
+        if (!error && data) {
+          setGameSession(data);
+          setStep(2);
+        }
+      })();
     }
   }, [searchParams]);
 
@@ -68,17 +82,17 @@ export default function JoinGame() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4">
+    <div className="min-h-screen flex items-center justify-center px-4 bg-gray-50">
       <div className="card w-full max-w-md animate-scale-in">
         <div className="text-center mb-6">
-          <Zap size={32} className="text-yellow-400 mx-auto mb-2" />
-          <h1 className="text-2xl font-bold font-display">Join a Game</h1>
+          <img src="/logo.png" alt="QuizBlitz" className="h-14 w-auto mx-auto mb-3" />
+          <h1 className="text-2xl font-bold font-display text-gray-900">Join a Game</h1>
         </div>
 
         {step === 1 ? (
           <form onSubmit={handlePinSubmit} className="space-y-4 animate-fade-in" key="s1">
             <div>
-              <label className="block text-sm text-white/60 mb-2 text-center">Enter the Game PIN</label>
+              <label className="block text-sm text-gray-600 mb-2 text-center font-medium">Enter the Game PIN</label>
               <input type="text" value={pin}
                 onChange={(e) => setPin(e.target.value.replace(/\D/g, '').slice(0, 6))}
                 className="input-field text-center text-4xl font-bold tracking-[0.5em] py-4"
@@ -90,17 +104,17 @@ export default function JoinGame() {
           </form>
         ) : (
           <form onSubmit={handleJoin} className="space-y-4 animate-fade-in" key="s2">
-            <button type="button" onClick={() => setStep(1)} className="text-white/50 hover:text-white flex items-center gap-1 text-sm">
+            <button type="button" onClick={() => setStep(1)} className="text-gray-500 hover:text-gray-900 flex items-center gap-1 text-sm">
               <ArrowLeft size={14} /> Change PIN
             </button>
 
             <div>
-              <label className="block text-sm text-white/60 mb-2">Choose your avatar</label>
+              <label className="block text-sm text-gray-600 mb-2 font-medium">Choose your avatar</label>
               <AvatarPicker value={avatarUrl} onChange={setAvatarUrl} name={nickname || 'You'} />
             </div>
 
             <div>
-              <label className="block text-sm text-white/60 mb-1">Nickname</label>
+              <label className="block text-sm text-gray-600 mb-1 font-medium">Nickname</label>
               <input type="text" value={nickname} onChange={(e) => setNickname(e.target.value)}
                 className="input-field text-lg" placeholder="Enter your nickname" maxLength={20} autoFocus />
             </div>

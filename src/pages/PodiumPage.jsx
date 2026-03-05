@@ -37,7 +37,7 @@ export default function PodiumPage() {
   const displayData = podiumData || [];
 
   return (
-    <div className="min-h-screen flex flex-col items-center py-8 px-4">
+    <div className="min-h-screen flex flex-col items-center py-8 px-4 bg-gray-50">
       <div className="w-full max-w-2xl animate-fade-in">
         {loading ? (
           <div className="flex justify-center py-20"><Loading text="Loading results..." /></div>
@@ -51,7 +51,7 @@ export default function PodiumPage() {
             )}
           </>
         ) : (
-          <p className="text-center text-white/40 py-20">No results available</p>
+          <p className="text-center text-gray-400 py-20">No results available</p>
         )}
 
         <div className="flex justify-center gap-4 mt-8">

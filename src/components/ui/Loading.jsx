@@ -3,7 +3,7 @@ export default function Loading({ size = 'md', text }) {
   return (
     <div className="flex flex-col items-center justify-center gap-3">
       <div className={`${sizes[size]} border-2 border-primary border-t-transparent rounded-full animate-spin`} />
-      {text && <p className="text-white/50 text-sm">{text}</p>}
+      {text && <p className="text-gray-500 text-sm">{text}</p>}
     </div>
   );
 }

@@ -165,14 +165,14 @@ export default function HostGameView() {
   const activePlayers = players.filter((p) => p.is_active !== false);
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center px-4 py-8">
+    <div className="min-h-screen flex flex-col items-center justify-center px-4 py-8 bg-gray-50">
       {status === 'loading' && (
         <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
       )}
 
       {status === 'countdown' && countdown !== null && (
         <div className="text-center animate-bounce-in" key={countdown}>
-          <div className="text-9xl font-bold font-display text-primary-light">
+          <div className="text-9xl font-bold font-display text-primary">
             {countdown === 0 ? 'GO!' : countdown}
           </div>
         </div>
@@ -182,7 +182,7 @@ export default function HostGameView() {
         <div className="w-full max-w-4xl animate-fade-in">
           <div className="flex items-center justify-between mb-6">
             <Timer timeLeft={timeLeft} totalTime={currentQuestion.time_limit_seconds} />
-            <div className="flex items-center gap-2 text-white/60">
+            <div className="flex items-center gap-2 text-gray-500">
               <Users size={20} />
               <span className="font-medium">{answeredCount} / {activePlayers.length} answered</span>
             </div>
@@ -196,7 +196,7 @@ export default function HostGameView() {
 
       {status === 'showing_results' && questionResults && (
         <div className="w-full max-w-4xl animate-slide-up">
-          <h2 className="text-2xl font-bold text-center mb-6 font-display">Results</h2>
+          <h2 className="text-2xl font-bold text-center mb-6 font-display text-gray-900">Results</h2>
           <AnswerDistribution distribution={questionResults.answer_distribution || []} />
           <Leaderboard players={questionResults.leaderboard || leaderboard} maxShow={5} />
           <div className="flex justify-center mt-8">
