@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { SkipForward, Users } from 'lucide-react';
 import { supabase } from '../lib/supabase';
@@ -32,14 +32,53 @@ export default function HostGameView() {
   const [totalQuestions, setTotalQuestions] = useState(0);
   const [questionIndex, setQuestionIndex] = useState(0);
   const [countdown, setCountdown] = useState(null);
+  const showingResultsRef = useRef(false);
+  const showResultsFnRef = useRef(async () => {});
+  const gameSessionRef = useRef(gameSession);
+  const statusRef = useRef(status);
 
-  const onTimeUp = useCallback(async () => {
-    if (!gameSession) return;
-    playTimeUp();
-    await showResults();
+  useEffect(() => {
+    gameSessionRef.current = gameSession;
   }, [gameSession]);
 
-  const { timeLeft, start: startTimer, stop: stopTimer, reset: resetTimer } = useTimer(20, onTimeUp);
+  useEffect(() => {
+    statusRef.current = status;
+  }, [status]);
+
+  const onTimeUp = useCallback(async () => {
+    if (statusRef.current !== 'answering') return;
+    playTimeUp();
+    await showResultsFnRef.current();
+  }, []);
+
+  const { timeLeft, start: startTimer, stop: stopTimer } = useTimer(20, onTimeUp);
+
+  const showResults = useCallback(async (sessionIdOverride = null) => {
+    const sessionId = sessionIdOverride || gameSessionRef.current?.id;
+    if (!sessionId) return;
+    if (statusRef.current !== 'answering') return;
+    if (showingResultsRef.current) return;
+
+    showingResultsRef.current = true;
+    stopTimer();
+    try {
+      const { data, error } = await supabase.rpc('show_question_results', {
+        p_game_session_id: sessionId,
+      });
+      if (error) throw error;
+      setQuestionResults(data);
+      setLeaderboard(data.leaderboard || []);
+      setStatus('showing_results');
+    } catch (err) {
+      toast.error(err.message || 'Failed to show results');
+    } finally {
+      showingResultsRef.current = false;
+    }
+  }, [setQuestionResults, setLeaderboard, stopTimer]);
+
+  useEffect(() => {
+    showResultsFnRef.current = showResults;
+  }, [showResults]);
 
   useEffect(() => {
     loadGameState();
@@ -78,16 +117,18 @@ export default function HostGameView() {
     setAnsweredCount(gs.answers_count || 0);
 
     if (gs.status === 'showing_question') {
+      showingResultsRef.current = false;
       setStatus('showing_question');
       runCountdown(() => startAnswering(gs, q));
     } else if (gs.status === 'answering') {
+      showingResultsRef.current = false;
       setStatus('answering');
       const elapsed = gs.question_started_at
         ? Math.floor((Date.now() - new Date(gs.question_started_at).getTime()) / 1000)
         : 0;
       const remaining = Math.max(0, q.time_limit_seconds - elapsed);
       if (remaining > 0) startTimer(remaining);
-      else await showResults();
+      else await showResults(gs.id);
     }
   };
 
@@ -116,26 +157,17 @@ export default function HostGameView() {
 
   const startAnswering = async (gs, questionData) => {
     const sessionId = gs?.id || gameSession?.id;
+    showingResultsRef.current = false;
     await supabase.rpc('start_answering', { p_game_session_id: sessionId });
     setStatus('answering');
     const q = questionData || currentQuestion;
     if (q) startTimer(q.time_limit_seconds);
   };
 
-  const showResults = async () => {
-    stopTimer();
-    const { data, error } = await supabase.rpc('show_question_results', {
-      p_game_session_id: gameSession.id,
-    });
-    if (error) { toast.error(error.message); return; }
-    setQuestionResults(data);
-    setLeaderboard(data.leaderboard || []);
-    setStatus('showing_results');
-  };
-
   const handleNext = async () => {
     setQuestionResults(null);
     setAnsweredCount(0);
+    showingResultsRef.current = false;
 
     const { data, error } = await supabase.rpc('advance_question', {
       p_game_session_id: gameSession.id,
@@ -168,6 +200,13 @@ export default function HostGameView() {
   };
 
   const activePlayers = players.filter((p) => p.is_active !== false);
+
+  useEffect(() => {
+    if (status !== 'answering') return;
+    if (activePlayers.length === 0) return;
+    if (answeredCount < activePlayers.length) return;
+    void showResults();
+  }, [status, answeredCount, activePlayers.length, showResults]);
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center px-4 py-8 bg-gray-50 dark:bg-gray-900 transition-colors">
