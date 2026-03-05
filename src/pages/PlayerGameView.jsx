@@ -36,7 +36,14 @@ export default function PlayerGameView() {
   const [countdown, setCountdown] = useState(null);
   const [showScorePopup, setShowScorePopup] = useState(false);
   const [resultFlash, setResultFlash] = useState(null);
+  const [showImagesToPlayers, setShowImagesToPlayers] = useState(true);
   const questionStartRef = useRef(null);
+
+  useEffect(() => {
+    if (!gameSession?.quiz_id) return;
+    supabase.from('quizzes').select('show_images_to_players').eq('id', gameSession.quiz_id).single()
+      .then(({ data }) => { if (data) setShowImagesToPlayers(data.show_images_to_players ?? true); });
+  }, [gameSession?.quiz_id]);
 
   const { timeLeft, start: startTimer, stop: stopTimer } = useTimer(20, () => {
     setStatus('time_up');
@@ -208,6 +215,12 @@ export default function PlayerGameView() {
           <div className="flex justify-center mb-4">
             <Timer timeLeft={timeLeft} totalTime={currentQuestion.time_limit_seconds} />
           </div>
+          {showImagesToPlayers && currentQuestion.image_url && (
+            <div className="flex justify-center mb-3">
+              <img src={currentQuestion.image_url} alt="Question illustration"
+                className="max-h-48 rounded-lg shadow-sm object-contain" />
+            </div>
+          )}
           <p className="text-center text-gray-600 dark:text-gray-400 text-sm mb-4">
             Q{questionIndex + 1}: {currentQuestion.text}
           </p>

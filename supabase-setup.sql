@@ -26,6 +26,7 @@ CREATE TABLE IF NOT EXISTS public.quizzes (
   description TEXT,
   cover_image_url TEXT,
   is_public BOOLEAN DEFAULT false,
+  show_images_to_players BOOLEAN DEFAULT true,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
