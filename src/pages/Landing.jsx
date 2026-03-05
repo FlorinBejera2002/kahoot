@@ -1,9 +1,9 @@
 import { Link } from 'react-router-dom';
-import { Zap, Users, Trophy } from 'lucide-react';
-import { useAuth } from '../hooks/useAuth';
+import { Zap, Users, Trophy, Settings } from 'lucide-react';
+import { useAdmin } from '../hooks/useAuth';
 
 export default function Landing() {
-  const { user } = useAuth();
+  const { isAdmin } = useAdmin();
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center px-4 relative overflow-hidden">
@@ -28,11 +28,11 @@ export default function Landing() {
         </p>
 
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
-          <Link to={user ? '/dashboard' : '/login'} className="btn-primary text-xl flex items-center justify-center gap-2 px-8 py-4">
-            <Trophy size={24} /> Host a Game
-          </Link>
-          <Link to="/join" className="btn-secondary text-xl flex items-center justify-center gap-2 px-8 py-4">
+          <Link to="/join" className="btn-primary text-xl flex items-center justify-center gap-2 px-8 py-4">
             <Users size={24} /> Join a Game
+          </Link>
+          <Link to={isAdmin ? '/dashboard' : '/admin'} className="btn-secondary text-xl flex items-center justify-center gap-2 px-8 py-4">
+            {isAdmin ? <><Trophy size={24} /> Dashboard</> : <><Settings size={24} /> Admin</>}
           </Link>
         </div>
 

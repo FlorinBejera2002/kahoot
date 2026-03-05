@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Play, Users, Zap } from 'lucide-react';
+import { Play, Users, Zap, QrCode } from 'lucide-react';
+import { QRCodeSVG } from 'qrcode.react';
 import { supabase } from '../lib/supabase';
 import { useGame } from '../hooks/useGame';
 import { useRealtimePlayers, useRealtimeGameSession } from '../hooks/useRealtime';
@@ -13,6 +14,9 @@ export default function HostLobby() {
   const navigate = useNavigate();
   const { gameSession, setGameSession, players, addPlayer, removePlayer, setPlayers } = useGame();
   const [loading, setLoading] = useState(true);
+  const [showQR, setShowQR] = useState(true);
+
+  const joinUrl = `${window.location.origin}/join?pin=${pin}`;
 
   useEffect(() => {
     const fetchGame = async () => {
@@ -86,8 +90,21 @@ export default function HostLobby() {
         <h1 className="text-2xl font-bold font-display">QuizBlitz</h1>
       </div>
 
-      <GamePin pin={pin} />
-      <p className="text-white/50 mt-4 mb-8">Share this PIN with players!</p>
+      <div className="flex flex-col md:flex-row items-center gap-8 mb-8">
+        <div className="text-center">
+          <GamePin pin={pin} />
+          <p className="text-white/50 mt-4">Share this PIN or scan the QR code!</p>
+          <button onClick={() => setShowQR(!showQR)} className="text-primary-light text-sm mt-2 hover:underline flex items-center gap-1 mx-auto">
+            <QrCode size={14} /> {showQR ? 'Hide' : 'Show'} QR Code
+          </button>
+        </div>
+
+        {showQR && (
+          <div className="bg-white p-4 rounded-xl animate-scale-in">
+            <QRCodeSVG value={joinUrl} size={200} level="H" />
+          </div>
+        )}
+      </div>
 
       <div className="flex items-center gap-2 text-white/60 mb-4">
         <Users size={20} />

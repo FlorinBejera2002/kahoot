@@ -1,94 +1,38 @@
-import { createContext, useState, useEffect, useCallback } from 'react';
-import { supabase } from '../lib/supabase';
+import { createContext, useState, useEffect } from 'react';
 
-export const AuthContext = createContext(null);
+export const AdminContext = createContext(null);
 
-export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null);
-  const [profile, setProfile] = useState(null);
+const ADMIN_KEY = 'quizblitz_admin';
+
+export function AdminProvider({ children }) {
+  const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  const fetchProfile = useCallback(async (userId) => {
-    const { data } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', userId)
-      .single();
-    setProfile(data);
-    return data;
+  useEffect(() => {
+    const stored = localStorage.getItem(ADMIN_KEY);
+    if (stored === import.meta.env.VITE_ADMIN_PASSWORD) {
+      setIsAdmin(true);
+    }
+    setLoading(false);
   }, []);
 
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        fetchProfile(session.user.id);
-      }
-      setLoading(false);
-    });
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        fetchProfile(session.user.id);
-      } else {
-        setProfile(null);
-      }
-    });
-
-    return () => subscription.unsubscribe();
-  }, [fetchProfile]);
-
-  const signUp = async (email, password, name, avatarUrl) => {
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: { name, avatar_url: avatarUrl },
-      },
-    });
-    if (error) throw error;
-
-    if (avatarUrl) {
-      await supabase
-        .from('profiles')
-        .update({ avatar_url: avatarUrl })
-        .eq('id', data.user.id);
+  const login = (password) => {
+    if (password === import.meta.env.VITE_ADMIN_PASSWORD) {
+      localStorage.setItem(ADMIN_KEY, password);
+      setIsAdmin(true);
+      return true;
     }
-
-    return data;
+    return false;
   };
 
-  const signIn = async (email, password) => {
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) throw error;
-    return data;
-  };
-
-  const signOut = async () => {
-    await supabase.auth.signOut();
-    setUser(null);
-    setProfile(null);
-  };
-
-  const updateProfile = async (updates) => {
-    if (!user) return;
-    const { data, error } = await supabase
-      .from('profiles')
-      .update(updates)
-      .eq('id', user.id)
-      .select()
-      .single();
-    if (error) throw error;
-    setProfile(data);
-    return data;
+  const logout = () => {
+    localStorage.removeItem(ADMIN_KEY);
+    setIsAdmin(false);
   };
 
   return (
-    <AuthContext.Provider value={{
-      user, profile, loading, signUp, signIn, signOut, updateProfile, fetchProfile
-    }}>
+    <AdminContext.Provider value={{ isAdmin, loading, login, logout }}>
       {children}
-    </AuthContext.Provider>
+    </AdminContext.Provider>
   );
 }

@@ -1,21 +1,27 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ArrowRight, ArrowLeft, Zap } from 'lucide-react';
 import { supabase } from '../lib/supabase';
-import { useAuth } from '../hooks/useAuth';
 import { useGame } from '../hooks/useGame';
 import AvatarPicker from '../components/AvatarPicker';
 import toast from 'react-hot-toast';
 
 export default function JoinGame() {
+  const [searchParams] = useSearchParams();
   const [step, setStep] = useState(1);
   const [pin, setPin] = useState('');
   const [nickname, setNickname] = useState('');
   const [avatarUrl, setAvatarUrl] = useState('');
   const [joining, setJoining] = useState(false);
-  const { user } = useAuth();
   const { setPlayerSession, setGameSession } = useGame();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const pinParam = searchParams.get('pin');
+    if (pinParam && /^\d{6}$/.test(pinParam)) {
+      setPin(pinParam);
+    }
+  }, [searchParams]);
 
   const handlePinSubmit = async (e) => {
     e.preventDefault();

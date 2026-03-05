@@ -1,63 +1,49 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { LogIn, Mail, Lock, Zap } from 'lucide-react';
-import { useAuth } from '../hooks/useAuth';
-import Input from '../components/ui/Input';
+import { useNavigate } from 'react-router-dom';
+import { Lock, Zap, LogIn } from 'lucide-react';
+import { useAdmin } from '../hooks/useAuth';
 import toast from 'react-hot-toast';
 
-export default function Login() {
-  const [email, setEmail] = useState('');
+export default function AdminLogin() {
   const [password, setPassword] = useState('');
-  const [loading, setLoading] = useState(false);
-  const { signIn } = useAuth();
+  const { login } = useAdmin();
   const navigate = useNavigate();
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = (e) => {
     e.preventDefault();
-    setLoading(true);
-    try {
-      await signIn(email, password);
-      toast.success('Welcome back!');
+    if (login(password)) {
+      toast.success('Welcome, Admin!');
       navigate('/dashboard');
-    } catch (err) {
-      toast.error(err.message || 'Login failed');
-    } finally {
-      setLoading(false);
+    } else {
+      toast.error('Wrong password');
     }
   };
 
   return (
     <div className="min-h-screen flex items-center justify-center px-4">
-      <div className="card w-full max-w-md animate-scale-in">
+      <div className="card w-full max-w-sm animate-scale-in">
         <div className="text-center mb-8">
-          <Link to="/" className="inline-flex items-center gap-2 mb-4">
-            <Zap size={32} className="text-yellow-400" />
-            <span className="text-2xl font-bold font-display">QuizBlitz</span>
-          </Link>
-          <h2 className="text-xl text-white/70">Sign in to your account</h2>
+          <Zap size={40} className="text-yellow-400 mx-auto mb-3" />
+          <h1 className="text-2xl font-bold font-display">Admin Access</h1>
+          <p className="text-white/50 mt-1">Enter admin password</p>
         </div>
-
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm text-white/60 mb-1">Email</label>
-            <Input icon={Mail} type="email" value={email} onChange={(e) => setEmail(e.target.value)}
-              placeholder="you@example.com" required />
+          <div className="relative">
+            <Lock size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/40" />
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="input-field pl-10"
+              placeholder="Password"
+              autoFocus
+              required
+            />
           </div>
-          <div>
-            <label className="block text-sm text-white/60 mb-1">Password</label>
-            <Input icon={Lock} type="password" value={password} onChange={(e) => setPassword(e.target.value)}
-              placeholder="Enter your password" required />
-          </div>
-          <button type="submit" disabled={loading} className="btn-primary w-full flex items-center justify-center gap-2">
-            {loading ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-              : <><LogIn size={18} /> Sign In</>}
+          <button type="submit" className="btn-primary w-full flex items-center justify-center gap-2">
+            <LogIn size={18} /> Enter
           </button>
         </form>
-
-        <p className="text-center text-white/50 mt-6">
-          Don't have an account?{' '}
-          <Link to="/register" className="text-primary-light hover:underline font-medium">Register</Link>
-        </p>
       </div>
     </div>
   );

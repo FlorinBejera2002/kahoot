@@ -1,5 +1,6 @@
 -- ============================================
 -- QuizBlitz - Complete Supabase SQL Setup
+-- NO user auth - admin password is frontend-only
 -- Run this ENTIRE file in Supabase SQL Editor
 -- ============================================
 
@@ -8,11 +9,6 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
 -- 2. CUSTOM TYPES
-DO $$ BEGIN
-  CREATE TYPE user_role AS ENUM ('host', 'player', 'admin');
-EXCEPTION WHEN duplicate_object THEN null;
-END $$;
-
 DO $$ BEGIN
   CREATE TYPE game_status AS ENUM ('lobby', 'countdown', 'showing_question', 'answering', 'showing_results', 'finished');
 EXCEPTION WHEN duplicate_object THEN null;
@@ -24,17 +20,8 @@ EXCEPTION WHEN duplicate_object THEN null;
 END $$;
 
 -- 3. TABLES
-CREATE TABLE IF NOT EXISTS public.profiles (
-  id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
-  name TEXT NOT NULL,
-  avatar_url TEXT,
-  role user_role DEFAULT 'player',
-  created_at TIMESTAMPTZ DEFAULT NOW()
-);
-
 CREATE TABLE IF NOT EXISTS public.quizzes (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  creator_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
   title TEXT NOT NULL,
   description TEXT,
   cover_image_url TEXT,
@@ -66,7 +53,6 @@ CREATE TABLE IF NOT EXISTS public.answers (
 CREATE TABLE IF NOT EXISTS public.game_sessions (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   quiz_id UUID NOT NULL REFERENCES public.quizzes(id),
-  host_id UUID NOT NULL REFERENCES public.profiles(id),
   game_pin TEXT NOT NULL UNIQUE,
   status game_status DEFAULT 'lobby',
   current_question_index INT DEFAULT -1,
@@ -79,7 +65,6 @@ CREATE TABLE IF NOT EXISTS public.game_sessions (
 CREATE TABLE IF NOT EXISTS public.player_sessions (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   game_session_id UUID NOT NULL REFERENCES public.game_sessions(id) ON DELETE CASCADE,
-  user_id UUID REFERENCES public.profiles(id),
   nickname TEXT NOT NULL,
   avatar_url TEXT,
   total_score INT DEFAULT 0,
@@ -109,7 +94,6 @@ CREATE INDEX IF NOT EXISTS idx_player_answers_player ON public.player_answers(pl
 CREATE INDEX IF NOT EXISTS idx_player_answers_question ON public.player_answers(question_id);
 CREATE INDEX IF NOT EXISTS idx_questions_quiz ON public.questions(quiz_id, order_index);
 CREATE INDEX IF NOT EXISTS idx_answers_question ON public.answers(question_id);
-CREATE INDEX IF NOT EXISTS idx_quizzes_creator ON public.quizzes(creator_id);
 
 -- 5. FUNCTIONS
 
@@ -135,16 +119,16 @@ DECLARE
   v_session public.game_sessions;
   v_question_count INT;
 BEGIN
-  IF NOT EXISTS (SELECT 1 FROM public.quizzes WHERE id = p_quiz_id AND creator_id = auth.uid()) THEN
-    RAISE EXCEPTION 'Not authorized to create game for this quiz';
+  IF NOT EXISTS (SELECT 1 FROM public.quizzes WHERE id = p_quiz_id) THEN
+    RAISE EXCEPTION 'Quiz not found';
   END IF;
   SELECT COUNT(*) INTO v_question_count FROM public.questions WHERE quiz_id = p_quiz_id;
   IF v_question_count = 0 THEN
     RAISE EXCEPTION 'Quiz must have at least one question';
   END IF;
   v_pin := generate_game_pin();
-  INSERT INTO public.game_sessions (quiz_id, host_id, game_pin, status)
-  VALUES (p_quiz_id, auth.uid(), v_pin, 'lobby')
+  INSERT INTO public.game_sessions (quiz_id, game_pin, status)
+  VALUES (p_quiz_id, v_pin, 'lobby')
   RETURNING * INTO v_session;
   RETURN json_build_object('id', v_session.id, 'game_pin', v_session.game_pin, 'status', v_session.status, 'quiz_id', v_session.quiz_id);
 END;
@@ -163,8 +147,8 @@ BEGIN
   IF EXISTS (SELECT 1 FROM public.player_sessions WHERE game_session_id = v_game.id AND LOWER(nickname) = LOWER(p_nickname) AND is_active = true) THEN
     RAISE EXCEPTION 'Nickname already taken in this game';
   END IF;
-  INSERT INTO public.player_sessions (game_session_id, user_id, nickname, avatar_url)
-  VALUES (v_game.id, auth.uid(), p_nickname, p_avatar_url)
+  INSERT INTO public.player_sessions (game_session_id, nickname, avatar_url)
+  VALUES (v_game.id, p_nickname, p_avatar_url)
   RETURNING * INTO v_player;
   RETURN json_build_object('player_session_id', v_player.id, 'game_session_id', v_game.id, 'nickname', v_player.nickname, 'avatar_url', v_player.avatar_url);
 END;
@@ -236,7 +220,7 @@ DECLARE
   v_quiz_id UUID;
 BEGIN
   SELECT * INTO v_game FROM public.game_sessions WHERE id = p_game_session_id;
-  IF v_game IS NULL OR v_game.host_id != auth.uid() THEN RAISE EXCEPTION 'Not authorized'; END IF;
+  IF v_game IS NULL THEN RAISE EXCEPTION 'Game not found'; END IF;
   v_quiz_id := v_game.quiz_id;
   v_next_index := v_game.current_question_index + 1;
   SELECT COUNT(*) INTO v_total_questions FROM public.questions WHERE quiz_id = v_quiz_id;
@@ -260,9 +244,6 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 CREATE OR REPLACE FUNCTION start_answering(p_game_session_id UUID)
 RETURNS VOID AS $$
 BEGIN
-  IF NOT EXISTS (SELECT 1 FROM public.game_sessions WHERE id = p_game_session_id AND host_id = auth.uid()) THEN
-    RAISE EXCEPTION 'Not authorized';
-  END IF;
   UPDATE public.game_sessions SET status = 'answering', question_started_at = NOW() WHERE id = p_game_session_id;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
@@ -274,7 +255,7 @@ DECLARE
   v_results JSON;
 BEGIN
   SELECT * INTO v_game FROM public.game_sessions WHERE id = p_game_session_id;
-  IF v_game IS NULL OR v_game.host_id != auth.uid() THEN RAISE EXCEPTION 'Not authorized'; END IF;
+  IF v_game IS NULL THEN RAISE EXCEPTION 'Game not found'; END IF;
   UPDATE public.game_sessions SET status = 'showing_results' WHERE id = p_game_session_id;
   SELECT json_build_object(
     'correct_answer', (SELECT json_build_object('id', a.id, 'text', a.text, 'color', a.color) FROM public.answers a WHERE a.question_id = v_game.current_question_id AND a.is_correct = true LIMIT 1),
@@ -306,25 +287,9 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 CREATE OR REPLACE FUNCTION kick_player(p_game_session_id UUID, p_player_session_id UUID)
 RETURNS VOID AS $$
 BEGIN
-  IF NOT EXISTS (SELECT 1 FROM public.game_sessions WHERE id = p_game_session_id AND host_id = auth.uid()) THEN
-    RAISE EXCEPTION 'Not authorized';
-  END IF;
   UPDATE public.player_sessions SET is_active = false WHERE id = p_player_session_id AND game_session_id = p_game_session_id;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
-
--- Auto-create profile on signup
-CREATE OR REPLACE FUNCTION handle_new_user()
-RETURNS TRIGGER AS $$
-BEGIN
-  INSERT INTO public.profiles (id, name, avatar_url)
-  VALUES (NEW.id, COALESCE(NEW.raw_user_meta_data->>'name', NEW.email), NEW.raw_user_meta_data->>'avatar_url');
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
-
-DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
-CREATE TRIGGER on_auth_user_created AFTER INSERT ON auth.users FOR EACH ROW EXECUTE FUNCTION handle_new_user();
 
 -- Updated_at trigger
 CREATE OR REPLACE FUNCTION update_updated_at()
@@ -335,8 +300,7 @@ $$ LANGUAGE plpgsql;
 DROP TRIGGER IF EXISTS quizzes_updated_at ON public.quizzes;
 CREATE TRIGGER quizzes_updated_at BEFORE UPDATE ON public.quizzes FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 
--- 6. ROW LEVEL SECURITY
-ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
+-- 6. ROW LEVEL SECURITY (open for anon access - admin auth is frontend-only)
 ALTER TABLE public.quizzes ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.questions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.answers ENABLE ROW LEVEL SECURITY;
@@ -351,56 +315,23 @@ DO $$ DECLARE pol RECORD; BEGIN
   END LOOP;
 END $$;
 
--- PROFILES
-CREATE POLICY "profiles_select" ON public.profiles FOR SELECT USING (true);
-CREATE POLICY "profiles_update" ON public.profiles FOR UPDATE USING (auth.uid() = id);
-
--- QUIZZES
-CREATE POLICY "quizzes_select" ON public.quizzes FOR SELECT USING (is_public = true OR creator_id = auth.uid());
-CREATE POLICY "quizzes_insert" ON public.quizzes FOR INSERT WITH CHECK (auth.uid() = creator_id);
-CREATE POLICY "quizzes_update" ON public.quizzes FOR UPDATE USING (auth.uid() = creator_id);
-CREATE POLICY "quizzes_delete" ON public.quizzes FOR DELETE USING (auth.uid() = creator_id);
+-- QUIZZES (admin manages via frontend password)
+CREATE POLICY "quizzes_all" ON public.quizzes FOR ALL USING (true) WITH CHECK (true);
 
 -- QUESTIONS
-CREATE POLICY "questions_select" ON public.questions FOR SELECT USING (
-  EXISTS (SELECT 1 FROM public.quizzes q WHERE q.id = quiz_id AND (q.is_public = true OR q.creator_id = auth.uid()))
-  OR EXISTS (SELECT 1 FROM public.game_sessions gs JOIN public.player_sessions ps ON ps.game_session_id = gs.id WHERE gs.quiz_id = quiz_id AND ps.user_id = auth.uid() AND ps.is_active = true)
-);
-CREATE POLICY "questions_insert" ON public.questions FOR INSERT WITH CHECK (EXISTS (SELECT 1 FROM public.quizzes WHERE id = quiz_id AND creator_id = auth.uid()));
-CREATE POLICY "questions_update" ON public.questions FOR UPDATE USING (EXISTS (SELECT 1 FROM public.quizzes WHERE id = quiz_id AND creator_id = auth.uid()));
-CREATE POLICY "questions_delete" ON public.questions FOR DELETE USING (EXISTS (SELECT 1 FROM public.quizzes WHERE id = quiz_id AND creator_id = auth.uid()));
+CREATE POLICY "questions_all" ON public.questions FOR ALL USING (true) WITH CHECK (true);
 
 -- ANSWERS
-CREATE POLICY "answers_select" ON public.answers FOR SELECT USING (
-  EXISTS (SELECT 1 FROM public.questions q JOIN public.quizzes qz ON qz.id = q.quiz_id WHERE q.id = question_id AND (qz.is_public = true OR qz.creator_id = auth.uid()))
-  OR EXISTS (SELECT 1 FROM public.game_sessions gs JOIN public.player_sessions ps ON ps.game_session_id = gs.id JOIN public.questions q ON q.quiz_id = gs.quiz_id WHERE q.id = question_id AND ps.user_id = auth.uid() AND ps.is_active = true AND gs.status IN ('answering', 'showing_results', 'finished'))
-);
-CREATE POLICY "answers_insert" ON public.answers FOR INSERT WITH CHECK (EXISTS (SELECT 1 FROM public.questions q JOIN public.quizzes qz ON qz.id = q.quiz_id WHERE q.id = question_id AND qz.creator_id = auth.uid()));
-CREATE POLICY "answers_update" ON public.answers FOR UPDATE USING (EXISTS (SELECT 1 FROM public.questions q JOIN public.quizzes qz ON qz.id = q.quiz_id WHERE q.id = question_id AND qz.creator_id = auth.uid()));
-CREATE POLICY "answers_delete" ON public.answers FOR DELETE USING (EXISTS (SELECT 1 FROM public.questions q JOIN public.quizzes qz ON qz.id = q.quiz_id WHERE q.id = question_id AND qz.creator_id = auth.uid()));
+CREATE POLICY "answers_all" ON public.answers FOR ALL USING (true) WITH CHECK (true);
 
 -- GAME SESSIONS
-CREATE POLICY "game_sessions_select" ON public.game_sessions FOR SELECT USING (
-  host_id = auth.uid() OR status = 'lobby'
-  OR EXISTS (SELECT 1 FROM public.player_sessions ps WHERE ps.game_session_id = id AND ps.user_id = auth.uid() AND ps.is_active = true)
-);
-CREATE POLICY "game_sessions_insert" ON public.game_sessions FOR INSERT WITH CHECK (auth.uid() = host_id);
-CREATE POLICY "game_sessions_update" ON public.game_sessions FOR UPDATE USING (auth.uid() = host_id);
+CREATE POLICY "game_sessions_all" ON public.game_sessions FOR ALL USING (true) WITH CHECK (true);
 
 -- PLAYER SESSIONS
-CREATE POLICY "player_sessions_select" ON public.player_sessions FOR SELECT USING (
-  EXISTS (SELECT 1 FROM public.game_sessions gs WHERE gs.id = game_session_id AND (gs.host_id = auth.uid() OR EXISTS (SELECT 1 FROM public.player_sessions ps2 WHERE ps2.game_session_id = gs.id AND ps2.user_id = auth.uid())))
-);
-CREATE POLICY "player_sessions_insert" ON public.player_sessions FOR INSERT WITH CHECK (auth.uid() IS NOT NULL);
-CREATE POLICY "player_sessions_update" ON public.player_sessions FOR UPDATE USING (user_id = auth.uid());
+CREATE POLICY "player_sessions_all" ON public.player_sessions FOR ALL USING (true) WITH CHECK (true);
 
 -- PLAYER ANSWERS
-CREATE POLICY "player_answers_select" ON public.player_answers FOR SELECT USING (
-  EXISTS (SELECT 1 FROM public.player_sessions ps JOIN public.game_sessions gs ON gs.id = ps.game_session_id WHERE ps.id = player_session_id AND (ps.user_id = auth.uid() OR gs.host_id = auth.uid()))
-);
-CREATE POLICY "player_answers_insert" ON public.player_answers FOR INSERT WITH CHECK (
-  EXISTS (SELECT 1 FROM public.player_sessions ps WHERE ps.id = player_session_id AND ps.user_id = auth.uid())
-);
+CREATE POLICY "player_answers_all" ON public.player_answers FOR ALL USING (true) WITH CHECK (true);
 
 -- 7. STORAGE
 INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
@@ -411,21 +342,17 @@ INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_typ
 VALUES ('quiz-images', 'quiz-images', true, 10485760, ARRAY['image/jpeg', 'image/png', 'image/webp', 'image/gif'])
 ON CONFLICT (id) DO NOTHING;
 
--- Storage policies (drop first for idempotency)
+-- Storage policies - allow public read and anonymous uploads
 DO $$ DECLARE pol RECORD; BEGIN
   FOR pol IN SELECT policyname, tablename FROM pg_policies WHERE schemaname = 'storage' LOOP
     EXECUTE format('DROP POLICY IF EXISTS %I ON storage.%I', pol.policyname, pol.tablename);
   END LOOP;
 END $$;
 
-CREATE POLICY "avatars_select" ON storage.objects FOR SELECT USING (bucket_id = 'avatars');
-CREATE POLICY "avatars_insert" ON storage.objects FOR INSERT WITH CHECK (bucket_id = 'avatars' AND auth.uid() IS NOT NULL);
-CREATE POLICY "avatars_update" ON storage.objects FOR UPDATE USING (bucket_id = 'avatars' AND auth.uid()::text = (storage.foldername(name))[1]);
-CREATE POLICY "avatars_delete" ON storage.objects FOR DELETE USING (bucket_id = 'avatars' AND auth.uid()::text = (storage.foldername(name))[1]);
-CREATE POLICY "quiz_images_select" ON storage.objects FOR SELECT USING (bucket_id = 'quiz-images');
-CREATE POLICY "quiz_images_insert" ON storage.objects FOR INSERT WITH CHECK (bucket_id = 'quiz-images' AND auth.uid() IS NOT NULL);
-CREATE POLICY "quiz_images_update" ON storage.objects FOR UPDATE USING (bucket_id = 'quiz-images' AND auth.uid()::text = (storage.foldername(name))[1]);
-CREATE POLICY "quiz_images_delete" ON storage.objects FOR DELETE USING (bucket_id = 'quiz-images' AND auth.uid()::text = (storage.foldername(name))[1]);
+CREATE POLICY "storage_select" ON storage.objects FOR SELECT USING (true);
+CREATE POLICY "storage_insert" ON storage.objects FOR INSERT WITH CHECK (true);
+CREATE POLICY "storage_update" ON storage.objects FOR UPDATE USING (true);
+CREATE POLICY "storage_delete" ON storage.objects FOR DELETE USING (true);
 
 -- 8. ENABLE REALTIME
 ALTER PUBLICATION supabase_realtime ADD TABLE public.game_sessions;

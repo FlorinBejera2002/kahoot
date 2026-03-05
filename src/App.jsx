@@ -1,12 +1,11 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
-import { AuthProvider } from './context/AuthContext';
+import { AdminProvider } from './context/AuthContext';
 import { GameProvider } from './context/GameContext';
-import { useAuth } from './hooks/useAuth';
+import { useAdmin } from './hooks/useAuth';
 
 import Landing from './pages/Landing';
-import Login from './pages/Login';
-import Register from './pages/Register';
+import AdminLogin from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import QuizEditor from './pages/QuizEditor';
 import JoinGame from './pages/JoinGame';
@@ -16,8 +15,8 @@ import PlayerLobby from './pages/PlayerLobby';
 import PlayerGameView from './pages/PlayerGameView';
 import PodiumPage from './pages/PodiumPage';
 
-function ProtectedRoute({ children }) {
-  const { user, loading } = useAuth();
+function AdminRoute({ children }) {
+  const { isAdmin, loading } = useAdmin();
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -25,7 +24,7 @@ function ProtectedRoute({ children }) {
       </div>
     );
   }
-  if (!user) return <Navigate to="/login" replace />;
+  if (!isAdmin) return <Navigate to="/admin" replace />;
   return children;
 }
 
@@ -33,17 +32,16 @@ function AppRoutes() {
   return (
     <Routes>
       <Route path="/" element={<Landing />} />
-      <Route path="/login" element={<Login />} />
-      <Route path="/register" element={<Register />} />
+      <Route path="/admin" element={<AdminLogin />} />
       <Route path="/join" element={<JoinGame />} />
       <Route path="/play/lobby/:pin" element={<PlayerLobby />} />
       <Route path="/play/game/:pin" element={<PlayerGameView />} />
       <Route path="/play/podium/:pin" element={<PodiumPage />} />
-      <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-      <Route path="/quiz/new" element={<ProtectedRoute><QuizEditor /></ProtectedRoute>} />
-      <Route path="/quiz/:id/edit" element={<ProtectedRoute><QuizEditor /></ProtectedRoute>} />
-      <Route path="/host/lobby/:pin" element={<ProtectedRoute><HostLobby /></ProtectedRoute>} />
-      <Route path="/host/game/:pin" element={<ProtectedRoute><HostGameView /></ProtectedRoute>} />
+      <Route path="/dashboard" element={<AdminRoute><Dashboard /></AdminRoute>} />
+      <Route path="/quiz/new" element={<AdminRoute><QuizEditor /></AdminRoute>} />
+      <Route path="/quiz/:id/edit" element={<AdminRoute><QuizEditor /></AdminRoute>} />
+      <Route path="/host/lobby/:pin" element={<AdminRoute><HostLobby /></AdminRoute>} />
+      <Route path="/host/game/:pin" element={<AdminRoute><HostGameView /></AdminRoute>} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
@@ -51,7 +49,7 @@ function AppRoutes() {
 
 export default function App() {
   return (
-    <AuthProvider>
+    <AdminProvider>
       <GameProvider>
         <AppRoutes />
         <Toaster
@@ -63,6 +61,6 @@ export default function App() {
           }}
         />
       </GameProvider>
-    </AuthProvider>
+    </AdminProvider>
   );
 }

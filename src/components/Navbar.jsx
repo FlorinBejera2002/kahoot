@@ -1,10 +1,15 @@
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Zap, LogOut } from 'lucide-react';
-import { useAuth } from '../hooks/useAuth';
-import Avatar from './Avatar';
+import { useAdmin } from '../hooks/useAuth';
 
 export default function Navbar() {
-  const { profile, signOut } = useAuth();
+  const { logout } = useAdmin();
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    logout();
+    navigate('/');
+  };
 
   return (
     <header className="border-b border-white/10 bg-white/5 backdrop-blur-sm">
@@ -13,17 +18,12 @@ export default function Navbar() {
           <Zap size={24} className="text-yellow-400" />
           <span className="text-xl font-bold font-display">QuizBlitz</span>
         </Link>
-        {profile && (
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2">
-              <Avatar src={profile.avatar_url} name={profile.name} size="sm" />
-              <span className="font-medium hidden sm:block">{profile.name}</span>
-            </div>
-            <button onClick={signOut} className="text-white/60 hover:text-white transition-colors" title="Logout">
-              <LogOut size={20} />
-            </button>
-          </div>
-        )}
+        <div className="flex items-center gap-4">
+          <span className="text-white/60 text-sm font-medium">Admin</span>
+          <button onClick={handleLogout} className="text-white/60 hover:text-white transition-colors" title="Logout">
+            <LogOut size={20} />
+          </button>
+        </div>
       </div>
     </header>
   );

@@ -2,26 +2,23 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, Play, Edit2, Trash2, FileText } from 'lucide-react';
 import { supabase } from '../lib/supabase';
-import { useAuth } from '../hooks/useAuth';
 import Navbar from '../components/Navbar';
 import Loading from '../components/ui/Loading';
 import toast from 'react-hot-toast';
 
 export default function Dashboard() {
-  const { user } = useAuth();
   const navigate = useNavigate();
   const [quizzes, setQuizzes] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetchQuizzes();
-  }, [user]);
+  }, []);
 
   const fetchQuizzes = async () => {
     const { data, error } = await supabase
       .from('quizzes')
       .select('*, questions(count)')
-      .eq('creator_id', user.id)
       .order('created_at', { ascending: false });
 
     if (!error) setQuizzes(data || []);

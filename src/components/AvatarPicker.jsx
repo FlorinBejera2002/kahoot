@@ -2,11 +2,9 @@ import { useState, useMemo } from 'react';
 import { Upload, Check } from 'lucide-react';
 import Avatar from './Avatar';
 import { getDefaultAvatarUrls, uploadAvatar } from '../utils/avatars';
-import { useAuth } from '../hooks/useAuth';
 import toast from 'react-hot-toast';
 
 export default function AvatarPicker({ value, onChange, name = 'You' }) {
-  const { user } = useAuth();
   const [uploading, setUploading] = useState(false);
   const defaults = useMemo(() => getDefaultAvatarUrls(), []);
 
@@ -15,7 +13,7 @@ export default function AvatarPicker({ value, onChange, name = 'You' }) {
     if (!file) return;
     setUploading(true);
     try {
-      const uid = user?.id || `anon-${Date.now()}`;
+      const uid = `anon-${Date.now()}`;
       const url = await uploadAvatar(uid, file);
       onChange(url);
       toast.success('Avatar uploaded!');

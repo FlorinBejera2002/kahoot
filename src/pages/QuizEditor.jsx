@@ -3,7 +3,6 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import { Plus, Trash2, Save, ArrowLeft, GripVertical, Check, Image, Clock } from 'lucide-react';
 import { supabase } from '../lib/supabase';
-import { useAuth } from '../hooks/useAuth';
 import { uploadQuizImage } from '../utils/avatars';
 import { COLOR_ORDER, TIME_OPTIONS } from '../lib/constants';
 import toast from 'react-hot-toast';
@@ -28,7 +27,6 @@ const newQuestion = () => ({
 export default function QuizEditor() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { user } = useAuth();
   const isNew = !id || id === 'new';
 
   const [title, setTitle] = useState('');
@@ -62,7 +60,7 @@ export default function QuizEditor() {
       let cid = quizId;
       if (!cid) {
         const { data, error } = await supabase.from('quizzes')
-          .insert({ title, description, is_public: isPublic, creator_id: user.id }).select().single();
+          .insert({ title, description, is_public: isPublic }).select().single();
         if (error) throw error;
         cid = data.id; setQuizId(cid);
       } else {
@@ -136,7 +134,7 @@ export default function QuizEditor() {
     const file = e.target.files?.[0];
     if (!file) return;
     try {
-      const url = await uploadQuizImage(user.id, file);
+      const url = await uploadQuizImage('admin', file);
       updateQ('image_url', url);
     } catch { toast.error('Upload failed'); }
   };
