@@ -14,5 +14,3 @@ export const AVATAR_COLORS = [
   '#7c3aed', '#db2777', '#ea580c', '#0d9488',
   '#4f46e5', '#78716c',
 ];
-
-export const DEFAULT_AVATAR_COUNT = 10;
