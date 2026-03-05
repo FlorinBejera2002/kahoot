@@ -34,6 +34,7 @@ export default function QuizEditor() {
   const [description, setDescription] = useState('');
   const [isPublic, setIsPublic] = useState(false);
   const [showImagesToPlayers, setShowImagesToPlayers] = useState(true);
+  const [manualCountdownStart, setManualCountdownStart] = useState(true);
   const [questions, setQuestions] = useState([]);
   const [sel, setSel] = useState(0);
   const [saving, setSaving] = useState(false);
@@ -52,6 +53,7 @@ export default function QuizEditor() {
     setDescription(data.description || '');
     setIsPublic(data.is_public);
     setShowImagesToPlayers(data.show_images_to_players ?? true);
+    setManualCountdownStart(data.manual_countdown_start ?? true);
     setQuestions(data.questions.sort((a, b) => a.order_index - b.order_index).map((q) => ({
       ...q, answers: q.answers.sort((a, b) => a.order_index - b.order_index),
     })));
@@ -64,11 +66,25 @@ export default function QuizEditor() {
       let cid = quizId;
       if (!cid) {
         const { data, error } = await supabase.from('quizzes')
-          .insert({ title, description, is_public: isPublic, show_images_to_players: showImagesToPlayers }).select().single();
+          .insert({
+            title,
+            description,
+            is_public: isPublic,
+            show_images_to_players: showImagesToPlayers,
+            manual_countdown_start: manualCountdownStart,
+          })
+          .select()
+          .single();
         if (error) throw error;
         cid = data.id; setQuizId(cid);
       } else {
-        await supabase.from('quizzes').update({ title, description, is_public: isPublic, show_images_to_players: showImagesToPlayers }).eq('id', cid);
+        await supabase.from('quizzes').update({
+          title,
+          description,
+          is_public: isPublic,
+          show_images_to_players: showImagesToPlayers,
+          manual_countdown_start: manualCountdownStart,
+        }).eq('id', cid);
       }
 
       await supabase.from('questions').delete().eq('quiz_id', cid);
@@ -285,6 +301,19 @@ export default function QuizEditor() {
             <div>
               <p className="text-sm font-medium text-gray-900 dark:text-white">Show images to players</p>
               <p className="text-xs text-gray-500 dark:text-gray-400">Question images appear on player screens</p>
+            </div>
+          </label>
+
+          <label className="flex items-center gap-3 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={manualCountdownStart}
+              onChange={(e) => setManualCountdownStart(e.target.checked)}
+              className="rounded accent-primary w-4 h-4"
+            />
+            <div>
+              <p className="text-sm font-medium text-gray-900 dark:text-white">Host starts countdown manually</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">Pause on each question until host triggers the 3-2-1 countdown</p>
             </div>
           </label>
 

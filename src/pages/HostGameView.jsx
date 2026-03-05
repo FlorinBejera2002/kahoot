@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { SkipForward, Users } from 'lucide-react';
+import { Play, SkipForward, Users } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useGame } from '../hooks/useGame';
 import { useRealtimeGameSession } from '../hooks/useRealtime';
@@ -32,6 +32,8 @@ export default function HostGameView() {
   const [totalQuestions, setTotalQuestions] = useState(0);
   const [questionIndex, setQuestionIndex] = useState(0);
   const [countdown, setCountdown] = useState(null);
+  const [manualCountdownStart, setManualCountdownStart] = useState(true);
+  const [startingCountdown, setStartingCountdown] = useState(false);
   const showingResultsRef = useRef(false);
   const showResultsFnRef = useRef(async () => {});
   const gameSessionRef = useRef(gameSession);
@@ -87,22 +89,24 @@ export default function HostGameView() {
   const loadGameState = async () => {
     const { data: gs } = await supabase
       .from('game_sessions')
-      .select('*, quiz:quizzes(questions(count))')
+      .select('*, quiz:quizzes(manual_countdown_start, questions(count))')
       .eq('game_pin', pin)
       .single();
 
     if (!gs) { toast.error('Game not found'); navigate('/dashboard'); return; }
+    const manualMode = gs.quiz?.manual_countdown_start ?? true;
     setGameSession(gs);
+    setManualCountdownStart(manualMode);
     setTotalQuestions(gs.quiz?.questions?.[0]?.count || 0);
 
-    if (gs.status === 'showing_question' || gs.status === 'answering') {
-      await loadCurrentQuestion(gs);
+    if (gs.status === 'showing_question' || gs.status === 'countdown' || gs.status === 'answering') {
+      await loadCurrentQuestion(gs, manualMode);
     } else if (gs.status === 'finished') {
       await loadPodium(gs.id);
     }
   };
 
-  const loadCurrentQuestion = async (gs) => {
+  const loadCurrentQuestion = async (gs, manualMode = manualCountdownStart) => {
     if (!gs.current_question_id) return;
     const { data: q } = await supabase
       .from('questions')
@@ -119,6 +123,11 @@ export default function HostGameView() {
     if (gs.status === 'showing_question') {
       showingResultsRef.current = false;
       setStatus('showing_question');
+      if (!manualMode) {
+        runCountdown(() => startAnswering(gs, q));
+      }
+    } else if (gs.status === 'countdown') {
+      showingResultsRef.current = false;
       runCountdown(() => startAnswering(gs, q));
     } else if (gs.status === 'answering') {
       showingResultsRef.current = false;
@@ -158,10 +167,27 @@ export default function HostGameView() {
   const startAnswering = async (gs, questionData) => {
     const sessionId = gs?.id || gameSession?.id;
     showingResultsRef.current = false;
-    await supabase.rpc('start_answering', { p_game_session_id: sessionId });
+    const { error } = await supabase.rpc('start_answering', { p_game_session_id: sessionId });
+    if (error) {
+      toast.error(error.message || 'Failed to start question');
+      return;
+    }
     setStatus('answering');
     const q = questionData || currentQuestion;
     if (q) startTimer(q.time_limit_seconds);
+  };
+
+  const handleStartCountdown = async () => {
+    if (!gameSession?.id) return;
+    if (status !== 'showing_question') return;
+    setStartingCountdown(true);
+    try {
+      await startAnswering(null, currentQuestion);
+    } catch (err) {
+      toast.error(err.message || 'Failed to start question');
+    } finally {
+      setStartingCountdown(false);
+    }
   };
 
   const handleNext = async () => {
@@ -190,7 +216,11 @@ export default function HostGameView() {
     setAnswers(fullQ.answers.sort((a, b) => a.order_index - b.order_index));
     setQuestionIndex(data.question_index);
 
-    runCountdown(() => startAnswering(null, fullQ));
+    if (manualCountdownStart) {
+      setStatus('showing_question');
+    } else {
+      runCountdown(() => startAnswering(null, fullQ));
+    }
   };
 
   const loadPodium = async (sessionId) => {
@@ -218,6 +248,26 @@ export default function HostGameView() {
         <div className="text-center animate-bounce-in" key={countdown}>
           <div className="text-9xl font-bold font-display text-primary">
             {countdown === 0 ? 'GO!' : countdown}
+          </div>
+        </div>
+      )}
+
+      {status === 'showing_question' && currentQuestion && manualCountdownStart && (
+        <div className="w-full max-w-4xl animate-fade-in">
+          <QuestionDisplay question={currentQuestion} questionNumber={questionIndex + 1} totalQuestions={totalQuestions} />
+          <div className="flex justify-center mt-8">
+            <button
+              onClick={handleStartCountdown}
+              disabled={startingCountdown}
+              className="btn-primary text-lg px-8 py-3 flex items-center gap-2"
+            >
+              {startingCountdown ? (
+                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              ) : (
+                <Play size={20} />
+              )}
+              Start Question
+            </button>
           </div>
         </div>
       )}

@@ -54,6 +54,7 @@ export default function PlayerGameView() {
   const [showScorePopup, setShowScorePopup] = useState(false);
   const [resultFlash, setResultFlash] = useState(null);
   const [showImagesToPlayers, setShowImagesToPlayers] = useState(true);
+  const [manualCountdownStart, setManualCountdownStart] = useState(true);
 
   const questionStartRef = useRef(null);
   const countdownIntervalRef = useRef(null);
@@ -211,10 +212,57 @@ export default function PlayerGameView() {
         setAnswers(questionData.answers);
         setQuestionIndex(updated.current_question_index ?? 0);
         resetPerQuestionState(updated.id, updated.current_question_id);
-        startCountdown(questionData.question);
+        if (manualCountdownStart) {
+          setStatus('showing_question');
+        } else {
+          startCountdown(questionData.question);
+        }
       } catch {
         toast.error('Failed to load question');
       }
+      return;
+    }
+
+    if (updated.status === 'countdown') {
+      if (!updated.current_question_id) {
+        setStatus('waiting');
+        return;
+      }
+
+      const questionKey = `${updated.id}:${updated.current_question_id}`;
+      const isNewQuestion = lastQuestionKeyRef.current !== questionKey;
+      if (!isNewQuestion && statusRef.current === 'countdown') {
+        return;
+      }
+      if (isNewQuestion) {
+        resetPerQuestionState(updated.id, updated.current_question_id);
+      }
+
+      let q = currentQuestionRef.current;
+      let ans = answersRef.current;
+      const needsSync = !q || q.id !== updated.current_question_id || !ans || ans.length === 0;
+
+      if (needsSync) {
+        try {
+          const questionData = await fetchQuestionData(updated.current_question_id);
+          if (!questionData || !isMountedRef.current) return;
+          q = questionData.question;
+          ans = questionData.answers;
+        } catch {
+          toast.error('Failed to sync question');
+          return;
+        }
+      }
+
+      if (!q) {
+        setStatus('waiting');
+        return;
+      }
+
+      setCurrentQuestion(q);
+      setAnswers(ans || []);
+      setQuestionIndex(updated.current_question_index ?? 0);
+      startCountdown(q);
       return;
     }
 
@@ -315,6 +363,7 @@ export default function PlayerGameView() {
     setAnswers,
     setCurrentQuestion,
     setGameSession,
+    manualCountdownStart,
     startCountdown,
     startTimer,
     stopTimer,
@@ -382,13 +431,24 @@ export default function PlayerGameView() {
     if (!gameSession?.quiz_id) return;
     supabase
       .from('quizzes')
-      .select('show_images_to_players')
+      .select('show_images_to_players, manual_countdown_start')
       .eq('id', gameSession.quiz_id)
       .single()
       .then(({ data }) => {
-        if (data) setShowImagesToPlayers(data.show_images_to_players ?? true);
+        if (data) {
+          setShowImagesToPlayers(data.show_images_to_players ?? true);
+          setManualCountdownStart(data.manual_countdown_start ?? true);
+        }
       });
   }, [gameSession?.quiz_id]);
+
+  useEffect(() => {
+    if (manualCountdownStart !== false) return;
+    if (gameSession?.status !== 'showing_question') return;
+    if (status !== 'showing_question' && status !== 'waiting') return;
+    if (!currentQuestion) return;
+    startCountdown(currentQuestion);
+  }, [manualCountdownStart, gameSession?.status, status, currentQuestion, startCountdown]);
 
   useRealtimeGameSession(gameSession?.id, (updated) => {
     void applyGameUpdate(updated);
@@ -496,12 +556,37 @@ export default function PlayerGameView() {
         </div>
       )}
 
+      {status === 'showing_question' && currentQuestion && (
+        <div className="w-full max-w-lg animate-fade-in text-center">
+          {showImagesToPlayers && currentQuestion.image_url && (
+            <div className="flex justify-center mb-3">
+              <img
+                src={currentQuestion.image_url}
+                alt="Question illustration"
+                className="max-h-48 rounded-lg shadow-sm object-contain"
+              />
+            </div>
+          )}
+          <p className="text-center text-gray-600 dark:text-gray-400 text-sm mb-3">
+            Q{questionIndex + 1}: {currentQuestion.text}
+          </p>
+          <p className="text-gray-500 dark:text-gray-400">Waiting for host to start...</p>
+        </div>
+      )}
+
       {status === 'countdown' && countdown !== null && (
         <div className="text-center animate-bounce-in" key={`c-${countdown}`}>
           <div className="text-8xl font-bold font-display text-primary">
             {countdown === 0 ? 'GO!' : countdown}
           </div>
           <p className="text-gray-500 dark:text-gray-400 mt-4">Get ready!</p>
+        </div>
+      )}
+
+      {status === 'answering' && !currentQuestion && (
+        <div className="text-center animate-fade-in">
+          <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-lg text-gray-700 dark:text-gray-300">Syncing question...</p>
         </div>
       )}
 
@@ -519,12 +604,19 @@ export default function PlayerGameView() {
           <p className="text-center text-gray-600 dark:text-gray-400 text-sm mb-4">
             Q{questionIndex + 1}: {currentQuestion.text}
           </p>
-          <AnswerGrid
-            answers={answers}
-            onAnswer={handleAnswer}
-            disabled={hasAnswered}
-            selectedId={selectedAnswerId}
-          />
+          {answers.length > 0 ? (
+            <AnswerGrid
+              answers={answers}
+              onAnswer={handleAnswer}
+              disabled={hasAnswered}
+              selectedId={selectedAnswerId}
+            />
+          ) : (
+            <div className="text-center py-6">
+              <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+              <p className="text-gray-500 dark:text-gray-400">Loading answers...</p>
+            </div>
+          )}
         </div>
       )}
 
