@@ -191,13 +191,25 @@ DECLARE
 BEGIN
   SELECT * INTO v_player FROM public.player_sessions WHERE id = p_player_session_id;
   IF v_player IS NULL THEN RAISE EXCEPTION 'Player session not found'; END IF;
+  IF NOT v_player.is_active THEN RAISE EXCEPTION 'Player session is inactive'; END IF;
+
   SELECT * INTO v_game FROM public.game_sessions WHERE id = v_player.game_session_id;
+  IF v_game IS NULL THEN RAISE EXCEPTION 'Game session not found'; END IF;
   IF v_game.status != 'answering' THEN RAISE EXCEPTION 'Game is not accepting answers'; END IF;
+  IF v_game.current_question_id IS DISTINCT FROM p_question_id THEN
+    RAISE EXCEPTION 'Question mismatch for current game state';
+  END IF;
+
   IF EXISTS (SELECT 1 FROM public.player_answers WHERE player_session_id = p_player_session_id AND question_id = p_question_id) THEN
     RAISE EXCEPTION 'Already answered this question';
   END IF;
+
   SELECT * INTO v_question FROM public.questions WHERE id = p_question_id;
+  IF v_question IS NULL THEN RAISE EXCEPTION 'Question not found'; END IF;
+
   SELECT * INTO v_answer FROM public.answers WHERE id = p_answer_id AND question_id = p_question_id;
+  IF v_answer IS NULL THEN RAISE EXCEPTION 'Invalid answer for current question'; END IF;
+
   v_is_correct := COALESCE(v_answer.is_correct, false);
   v_score_result := calculate_score(v_question.points, p_response_time_ms, v_question.time_limit_seconds, v_is_correct, v_player.streak);
   v_points := (v_score_result->>'points')::INT;
@@ -261,7 +273,15 @@ BEGIN
   SELECT json_build_object(
     'correct_answer', (SELECT json_build_object('id', a.id, 'text', a.text, 'color', a.color) FROM public.answers a WHERE a.question_id = v_game.current_question_id AND a.is_correct = true LIMIT 1),
     'answer_distribution', (SELECT json_agg(json_build_object('answer_id', a.id, 'text', a.text, 'color', a.color, 'count', COALESCE(pa.cnt, 0), 'is_correct', a.is_correct))
-      FROM public.answers a LEFT JOIN (SELECT answer_id, COUNT(*) as cnt FROM public.player_answers WHERE question_id = v_game.current_question_id GROUP BY answer_id) pa ON pa.answer_id = a.id
+      FROM public.answers a
+      LEFT JOIN (
+        SELECT pa.answer_id, COUNT(*) as cnt
+        FROM public.player_answers pa
+        JOIN public.player_sessions ps ON ps.id = pa.player_session_id
+        WHERE pa.question_id = v_game.current_question_id
+          AND ps.game_session_id = p_game_session_id
+        GROUP BY pa.answer_id
+      ) pa ON pa.answer_id = a.id
       WHERE a.question_id = v_game.current_question_id),
     'leaderboard', (SELECT json_agg(row_data ORDER BY ts DESC)
       FROM (SELECT json_build_object('player_session_id', ps.id, 'nickname', ps.nickname, 'avatar_url', ps.avatar_url, 'total_score', ps.total_score, 'streak', ps.streak,

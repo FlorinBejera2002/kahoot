@@ -11,7 +11,7 @@ import { playPlayerJoin, playGameStart } from '../utils/sounds';
 export default function PlayerLobby() {
   const { pin } = useParams();
   const navigate = useNavigate();
-  const { gameSession, setGameSession, playerSession, players, addPlayer } = useGame();
+  const { gameSession, setGameSession, playerSession, players, addPlayer, resetGame } = useGame();
 
   useRealtimeGameSession(gameSession?.id, (updated) => {
     setGameSession(updated);
@@ -27,8 +27,16 @@ export default function PlayerLobby() {
   });
 
   useEffect(() => {
-    if (!playerSession) navigate('/join');
-  }, [playerSession, navigate]);
+    if (!playerSession) navigate(`/join?pin=${pin}`, { replace: true });
+  }, [playerSession, navigate, pin]);
+
+  useEffect(() => {
+    if (!playerSession || !gameSession?.id) return;
+    if (playerSession.game_session_id !== gameSession.id) {
+      resetGame();
+      navigate(`/join?pin=${pin}`, { replace: true });
+    }
+  }, [playerSession, gameSession?.id, resetGame, navigate, pin]);
 
   if (!playerSession) return null;
 
