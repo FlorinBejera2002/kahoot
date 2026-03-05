@@ -11,6 +11,7 @@ import Timer from '../components/Timer';
 import Leaderboard from '../components/Leaderboard';
 import AnswerDistribution from '../components/AnswerDistribution';
 import Podium from '../components/Podium';
+import { playCountdownTick, playGo, playTimeUp } from '../utils/sounds';
 import toast from 'react-hot-toast';
 
 export default function HostGameView() {
@@ -34,6 +35,7 @@ export default function HostGameView() {
 
   const onTimeUp = useCallback(async () => {
     if (!gameSession) return;
+    playTimeUp();
     await showResults();
   }, [gameSession]);
 
@@ -98,12 +100,16 @@ export default function HostGameView() {
     let c = 3;
     setCountdown(c);
     setStatus('countdown');
+    playCountdownTick();
     const iv = setInterval(() => {
       c--;
       setCountdown(c);
-      if (c <= 0) {
+      if (c > 0) {
+        playCountdownTick();
+      } else {
         clearInterval(iv);
         setCountdown(null);
+        playGo();
         onDone();
       }
     }, 1000);
@@ -165,7 +171,7 @@ export default function HostGameView() {
   const activePlayers = players.filter((p) => p.is_active !== false);
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center px-4 py-8 bg-gray-50">
+    <div className="min-h-screen flex flex-col items-center justify-center px-4 py-8 bg-gray-50 dark:bg-gray-900 transition-colors">
       {status === 'loading' && (
         <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
       )}
@@ -182,7 +188,7 @@ export default function HostGameView() {
         <div className="w-full max-w-4xl animate-fade-in">
           <div className="flex items-center justify-between mb-6">
             <Timer timeLeft={timeLeft} totalTime={currentQuestion.time_limit_seconds} />
-            <div className="flex items-center gap-2 text-gray-500">
+            <div className="flex items-center gap-2 text-gray-500 dark:text-gray-400">
               <Users size={20} />
               <span className="font-medium">{answeredCount} / {activePlayers.length} answered</span>
             </div>
@@ -196,7 +202,7 @@ export default function HostGameView() {
 
       {status === 'showing_results' && questionResults && (
         <div className="w-full max-w-4xl animate-slide-up">
-          <h2 className="text-2xl font-bold text-center mb-6 font-display text-gray-900">Results</h2>
+          <h2 className="text-2xl font-bold text-center mb-6 font-display text-gray-900 dark:text-white">Results</h2>
           <AnswerDistribution distribution={questionResults.answer_distribution || []} />
           <Leaderboard players={questionResults.leaderboard || leaderboard} maxShow={5} />
           <div className="flex justify-center mt-8">

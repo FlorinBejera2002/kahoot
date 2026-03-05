@@ -10,24 +10,26 @@ export default function PlayerList({ players = [], onKick, showKick = false }) {
             <div key={d} className="w-3 h-3 bg-primary rounded-full animate-bounce" style={{ animationDelay: `${d}ms` }} />
           ))}
         </div>
-        <p className="text-gray-400">Waiting for players to join...</p>
+        <p className="text-gray-400 dark:text-gray-500">Waiting for players to join...</p>
       </div>
     );
   }
 
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3" role="list" aria-label="Players in lobby">
       {players.filter((p) => p.is_active !== false).map((player) => (
         <div
           key={player.id}
           className="card flex items-center gap-3 p-3 group animate-scale-in"
+          role="listitem"
         >
           <Avatar src={player.avatar_url} name={player.nickname} size="sm" />
-          <span className="font-medium flex-1 truncate text-sm text-gray-900">{player.nickname}</span>
+          <span className="font-medium flex-1 truncate text-sm text-gray-900 dark:text-white">{player.nickname}</span>
           {showKick && onKick && (
             <button
               onClick={() => onKick(player.id)}
-              className="text-gray-300 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100"
+              className="text-gray-300 dark:text-gray-600 hover:text-red-500 dark:hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100"
+              aria-label={`Kick ${player.nickname}`}
             >
               <X size={16} />
             </button>

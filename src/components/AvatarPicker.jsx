@@ -2,11 +2,19 @@ import { useState, useMemo } from 'react';
 import { Upload, Check } from 'lucide-react';
 import Avatar from './Avatar';
 import { getDefaultAvatarUrls, uploadAvatar } from '../utils/avatars';
+import { playClick } from '../utils/sounds';
+import { tapLight } from '../utils/haptics';
 import toast from 'react-hot-toast';
 
 export default function AvatarPicker({ value, onChange, name = 'You' }) {
   const [uploading, setUploading] = useState(false);
   const defaults = useMemo(() => getDefaultAvatarUrls(), []);
+
+  const handleSelect = (url) => {
+    playClick();
+    tapLight();
+    onChange(url);
+  };
 
   const handleUpload = async (e) => {
     const file = e.target.files?.[0];
@@ -29,14 +37,17 @@ export default function AvatarPicker({ value, onChange, name = 'You' }) {
       <div className="flex justify-center mb-3">
         <Avatar src={value} name={name} size="md" />
       </div>
-      <div className="grid grid-cols-5 gap-2 mb-3">
+      <div className="grid grid-cols-5 gap-2 mb-3" role="radiogroup" aria-label="Choose an avatar">
         {defaults.map((url) => (
           <button
             key={url}
             type="button"
-            onClick={() => onChange(url)}
+            onClick={() => handleSelect(url)}
+            role="radio"
+            aria-checked={value === url}
+            aria-label="Default avatar option"
             className={`relative rounded-full overflow-hidden border-2 transition-all ${
-              value === url ? 'border-primary scale-110 shadow-md' : 'border-gray-200 hover:border-gray-400'
+              value === url ? 'border-primary scale-110 shadow-md' : 'border-gray-200 dark:border-gray-600 hover:border-gray-400'
             }`}
           >
             <img src={url} alt="" className="w-12 h-12 object-cover rounded-full" />

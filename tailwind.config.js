@@ -1,6 +1,7 @@
 /** @type {import('tailwindcss').Config} */
 export default {
   content: ['./index.html', './src/**/*.{js,jsx}'],
+  darkMode: 'class',
   theme: {
     extend: {
       colors: {
@@ -25,18 +26,34 @@ export default {
       keyframes: {
         'fade-in': { from: { opacity: '0' }, to: { opacity: '1' } },
         'slide-up': { from: { transform: 'translateY(20px)', opacity: '0' }, to: { transform: 'translateY(0)', opacity: '1' } },
+        'slide-down': { from: { transform: 'translateY(-20px)', opacity: '0' }, to: { transform: 'translateY(0)', opacity: '1' } },
         'scale-in': { from: { transform: 'scale(0.8)', opacity: '0' }, to: { transform: 'scale(1)', opacity: '1' } },
         'shake': { '0%,100%': { transform: 'translateX(0)' }, '25%': { transform: 'translateX(-5px)' }, '75%': { transform: 'translateX(5px)' } },
         'bounce-in': { '0%': { transform: 'scale(0)' }, '50%': { transform: 'scale(1.15)' }, '100%': { transform: 'scale(1)' } },
         'pulse-ring': { '0%': { transform: 'scale(1)', opacity: '1' }, '100%': { transform: 'scale(1.5)', opacity: '0' } },
+        'score-pop': { '0%': { transform: 'scale(0) translateY(0)', opacity: '0' }, '50%': { transform: 'scale(1.3) translateY(-10px)', opacity: '1' }, '100%': { transform: 'scale(1) translateY(-20px)', opacity: '0' } },
+        'streak-glow': { '0%,100%': { boxShadow: '0 0 5px rgba(234,194,67,0.3)' }, '50%': { boxShadow: '0 0 20px rgba(234,194,67,0.6), 0 0 40px rgba(234,194,67,0.3)' } },
+        'float': { '0%,100%': { transform: 'translateY(0)' }, '50%': { transform: 'translateY(-6px)' } },
+        'ripple': { '0%': { transform: 'scale(0)', opacity: '0.6' }, '100%': { transform: 'scale(4)', opacity: '0' } },
+        'count-up': { from: { opacity: '0', transform: 'translateY(10px)' }, to: { opacity: '1', transform: 'translateY(0)' } },
+        'correct-flash': { '0%': { backgroundColor: 'rgba(22,163,74,0)' }, '30%': { backgroundColor: 'rgba(22,163,74,0.15)' }, '100%': { backgroundColor: 'rgba(22,163,74,0)' } },
+        'wrong-flash': { '0%': { backgroundColor: 'rgba(220,38,38,0)' }, '30%': { backgroundColor: 'rgba(220,38,38,0.15)' }, '100%': { backgroundColor: 'rgba(220,38,38,0)' } },
       },
       animation: {
         'fade-in': 'fade-in 0.5s ease-out',
         'slide-up': 'slide-up 0.5s ease-out',
+        'slide-down': 'slide-down 0.5s ease-out',
         'scale-in': 'scale-in 0.3s ease-out',
         'shake': 'shake 0.5s ease-in-out',
         'bounce-in': 'bounce-in 0.5s ease-out',
         'pulse-ring': 'pulse-ring 1s ease-out infinite',
+        'score-pop': 'score-pop 1s ease-out forwards',
+        'streak-glow': 'streak-glow 1.5s ease-in-out infinite',
+        'float': 'float 2s ease-in-out infinite',
+        'ripple': 'ripple 0.6s ease-out',
+        'count-up': 'count-up 0.3s ease-out',
+        'correct-flash': 'correct-flash 0.8s ease-out',
+        'wrong-flash': 'wrong-flash 0.8s ease-out',
       },
     },
   },

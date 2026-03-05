@@ -24,15 +24,17 @@ export default function Avatar({ src, name = '', size = 'sm', className = '' }) 
       <img
         src={src}
         alt={name}
-        className={`${cls} rounded-full object-cover border-2 border-gray-200 flex-shrink-0 ${className}`}
+        className={`${cls} rounded-full object-cover border-2 border-gray-200 dark:border-gray-600 flex-shrink-0 ${className}`}
       />
     );
   }
 
   return (
     <div
-      className={`${cls} rounded-full border-2 border-white flex items-center justify-center font-bold text-white flex-shrink-0 shadow-sm ${className}`}
+      className={`${cls} rounded-full border-2 border-white dark:border-gray-700 flex items-center justify-center font-bold text-white flex-shrink-0 shadow-sm ${className}`}
       style={{ backgroundColor: bg }}
+      role="img"
+      aria-label={`Avatar for ${name}`}
     >
       {initial}
     </div>

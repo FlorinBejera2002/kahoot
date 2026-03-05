@@ -2,7 +2,9 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { AdminProvider } from './context/AuthContext';
 import { GameProvider } from './context/GameContext';
+import { ThemeProvider, useTheme } from './context/ThemeContext';
 import { useAdmin } from './hooks/useAuth';
+import ConnectionStatus from './components/ConnectionStatus';
 
 import Landing from './pages/Landing';
 import AdminLogin from './pages/Login';
@@ -19,7 +21,7 @@ function AdminRoute({ children }) {
   const { isAdmin, loading } = useAdmin();
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
         <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
       </div>
     );
@@ -47,20 +49,35 @@ function AppRoutes() {
   );
 }
 
+function ToasterWithTheme() {
+  const { darkMode } = useTheme();
+  return (
+    <Toaster
+      position="top-center"
+      toastOptions={{
+        style: {
+          background: darkMode ? '#1f2937' : '#ffffff',
+          color: darkMode ? '#f3f4f6' : '#111827',
+          border: `1px solid ${darkMode ? '#374151' : '#e5e7eb'}`,
+          boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+        },
+        success: { iconTheme: { primary: '#16a34a', secondary: '#fff' } },
+        error: { iconTheme: { primary: '#DC2626', secondary: '#fff' } },
+      }}
+    />
+  );
+}
+
 export default function App() {
   return (
-    <AdminProvider>
-      <GameProvider>
-        <AppRoutes />
-        <Toaster
-          position="top-center"
-          toastOptions={{
-            style: { background: '#ffffff', color: '#111827', border: '1px solid #e5e7eb', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' },
-            success: { iconTheme: { primary: '#16a34a', secondary: '#fff' } },
-            error: { iconTheme: { primary: '#DC2626', secondary: '#fff' } },
-          }}
-        />
-      </GameProvider>
-    </AdminProvider>
+    <ThemeProvider>
+      <AdminProvider>
+        <GameProvider>
+          <ConnectionStatus />
+          <AppRoutes />
+          <ToasterWithTheme />
+        </GameProvider>
+      </AdminProvider>
+    </ThemeProvider>
   );
 }

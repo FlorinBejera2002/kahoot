@@ -4,6 +4,10 @@ import { ArrowRight, ArrowLeft } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useGame } from '../hooks/useGame';
 import AvatarPicker from '../components/AvatarPicker';
+import DarkModeToggle from '../components/DarkModeToggle';
+import SoundToggle from '../components/SoundToggle';
+import { playClick, initAudio } from '../utils/sounds';
+import { tapLight } from '../utils/haptics';
 import toast from 'react-hot-toast';
 
 export default function JoinGame() {
@@ -20,7 +24,6 @@ export default function JoinGame() {
     const pinParam = searchParams.get('pin');
     if (pinParam && /^\d{6}$/.test(pinParam)) {
       setPin(pinParam);
-      // Auto-validate PIN from QR code and skip to step 2
       (async () => {
         const { data, error } = await supabase
           .from('game_sessions')
@@ -40,6 +43,8 @@ export default function JoinGame() {
   const handlePinSubmit = async (e) => {
     e.preventDefault();
     if (pin.length !== 6) { toast.error('PIN must be 6 digits'); return; }
+    playClick();
+    tapLight();
 
     const { data, error } = await supabase
       .from('game_sessions')
@@ -57,6 +62,7 @@ export default function JoinGame() {
     e.preventDefault();
     if (!nickname.trim()) { toast.error('Enter a nickname'); return; }
     setJoining(true);
+    initAudio();
 
     try {
       const { data, error } = await supabase.rpc('join_game', {
@@ -82,21 +88,26 @@ export default function JoinGame() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 bg-gray-50">
+    <div className="min-h-screen flex items-center justify-center px-4 bg-gray-50 dark:bg-gray-900 transition-colors">
+      <div className="absolute top-4 right-4 flex gap-1">
+        <SoundToggle />
+        <DarkModeToggle />
+      </div>
       <div className="card w-full max-w-md animate-scale-in">
         <div className="text-center mb-6">
           <img src="/logo.png" alt="QuizBlitz" className="h-14 w-auto mx-auto mb-3" />
-          <h1 className="text-2xl font-bold font-display text-gray-900">Join a Game</h1>
+          <h1 className="text-2xl font-bold font-display text-gray-900 dark:text-white">Join a Game</h1>
         </div>
 
         {step === 1 ? (
           <form onSubmit={handlePinSubmit} className="space-y-4 animate-fade-in" key="s1">
             <div>
-              <label className="block text-sm text-gray-600 mb-2 text-center font-medium">Enter the Game PIN</label>
-              <input type="text" value={pin}
+              <label htmlFor="pin-input" className="block text-sm text-gray-600 dark:text-gray-400 mb-2 text-center font-medium">Enter the Game PIN</label>
+              <input id="pin-input" type="text" value={pin}
                 onChange={(e) => setPin(e.target.value.replace(/\D/g, '').slice(0, 6))}
                 className="input-field text-center text-4xl font-bold tracking-[0.5em] py-4"
-                placeholder="------" maxLength={6} autoFocus inputMode="numeric" />
+                placeholder="------" maxLength={6} autoFocus inputMode="numeric"
+                aria-label="6-digit game PIN" />
             </div>
             <button type="submit" disabled={pin.length !== 6} className="btn-primary w-full flex items-center justify-center gap-2">
               Next <ArrowRight size={18} />
@@ -104,18 +115,18 @@ export default function JoinGame() {
           </form>
         ) : (
           <form onSubmit={handleJoin} className="space-y-4 animate-fade-in" key="s2">
-            <button type="button" onClick={() => setStep(1)} className="text-gray-500 hover:text-gray-900 flex items-center gap-1 text-sm">
+            <button type="button" onClick={() => { setStep(1); playClick(); }} className="text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white flex items-center gap-1 text-sm">
               <ArrowLeft size={14} /> Change PIN
             </button>
 
             <div>
-              <label className="block text-sm text-gray-600 mb-2 font-medium">Choose your avatar</label>
+              <label className="block text-sm text-gray-600 dark:text-gray-400 mb-2 font-medium">Choose your avatar</label>
               <AvatarPicker value={avatarUrl} onChange={setAvatarUrl} name={nickname || 'You'} />
             </div>
 
             <div>
-              <label className="block text-sm text-gray-600 mb-1 font-medium">Nickname</label>
-              <input type="text" value={nickname} onChange={(e) => setNickname(e.target.value)}
+              <label htmlFor="nickname-input" className="block text-sm text-gray-600 dark:text-gray-400 mb-1 font-medium">Nickname</label>
+              <input id="nickname-input" type="text" value={nickname} onChange={(e) => setNickname(e.target.value)}
                 className="input-field text-lg" placeholder="Enter your nickname" maxLength={20} autoFocus />
             </div>
 
