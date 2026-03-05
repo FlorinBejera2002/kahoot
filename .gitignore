@@ -7,3 +7,7 @@ dist/
 .DS_Store
 Thumbs.db
 .vite/
+.idea/
+.vscode/
+bun.lock
+.claude

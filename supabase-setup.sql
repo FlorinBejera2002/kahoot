@@ -26,9 +26,24 @@ CREATE TABLE IF NOT EXISTS public.quizzes (
   description TEXT,
   cover_image_url TEXT,
   is_public BOOLEAN DEFAULT false,
+  show_images_to_players BOOLEAN DEFAULT true,
+  manual_countdown_start BOOLEAN DEFAULT true,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+ALTER TABLE public.quizzes
+  ADD COLUMN IF NOT EXISTS manual_countdown_start BOOLEAN;
+
+UPDATE public.quizzes
+SET manual_countdown_start = true
+WHERE manual_countdown_start IS NULL;
+
+ALTER TABLE public.quizzes
+  ALTER COLUMN manual_countdown_start SET DEFAULT true;
+
+ALTER TABLE public.quizzes
+  ALTER COLUMN manual_countdown_start SET NOT NULL;
 
 CREATE TABLE IF NOT EXISTS public.questions (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -190,13 +205,25 @@ DECLARE
 BEGIN
   SELECT * INTO v_player FROM public.player_sessions WHERE id = p_player_session_id;
   IF v_player IS NULL THEN RAISE EXCEPTION 'Player session not found'; END IF;
+  IF NOT v_player.is_active THEN RAISE EXCEPTION 'Player session is inactive'; END IF;
+
   SELECT * INTO v_game FROM public.game_sessions WHERE id = v_player.game_session_id;
+  IF v_game IS NULL THEN RAISE EXCEPTION 'Game session not found'; END IF;
   IF v_game.status != 'answering' THEN RAISE EXCEPTION 'Game is not accepting answers'; END IF;
+  IF v_game.current_question_id IS DISTINCT FROM p_question_id THEN
+    RAISE EXCEPTION 'Question mismatch for current game state';
+  END IF;
+
   IF EXISTS (SELECT 1 FROM public.player_answers WHERE player_session_id = p_player_session_id AND question_id = p_question_id) THEN
     RAISE EXCEPTION 'Already answered this question';
   END IF;
+
   SELECT * INTO v_question FROM public.questions WHERE id = p_question_id;
+  IF v_question IS NULL THEN RAISE EXCEPTION 'Question not found'; END IF;
+
   SELECT * INTO v_answer FROM public.answers WHERE id = p_answer_id AND question_id = p_question_id;
+  IF v_answer IS NULL THEN RAISE EXCEPTION 'Invalid answer for current question'; END IF;
+
   v_is_correct := COALESCE(v_answer.is_correct, false);
   v_score_result := calculate_score(v_question.points, p_response_time_ms, v_question.time_limit_seconds, v_is_correct, v_player.streak);
   v_points := (v_score_result->>'points')::INT;
@@ -234,10 +261,20 @@ BEGIN
     RETURN json_build_object('status', 'finished', 'question', NULL);
   END IF;
   SELECT * INTO v_next_question FROM public.questions WHERE quiz_id = v_quiz_id AND order_index = v_next_index;
-  UPDATE public.game_sessions SET status = 'showing_question', current_question_index = v_next_index, current_question_id = v_next_question.id, question_started_at = NOW(), answers_count = 0
+  UPDATE public.game_sessions SET status = 'showing_question', current_question_index = v_next_index, current_question_id = v_next_question.id, question_started_at = NULL, answers_count = 0
   WHERE id = p_game_session_id;
   RETURN json_build_object('status', 'showing_question', 'question_index', v_next_index, 'total_questions', v_total_questions,
     'question', json_build_object('id', v_next_question.id, 'text', v_next_question.text, 'image_url', v_next_question.image_url, 'time_limit_seconds', v_next_question.time_limit_seconds, 'points', v_next_question.points));
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE OR REPLACE FUNCTION start_question_countdown(p_game_session_id UUID)
+RETURNS VOID AS $$
+BEGIN
+  UPDATE public.game_sessions
+  SET status = 'countdown'
+  WHERE id = p_game_session_id
+    AND status = 'showing_question';
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
@@ -260,7 +297,15 @@ BEGIN
   SELECT json_build_object(
     'correct_answer', (SELECT json_build_object('id', a.id, 'text', a.text, 'color', a.color) FROM public.answers a WHERE a.question_id = v_game.current_question_id AND a.is_correct = true LIMIT 1),
     'answer_distribution', (SELECT json_agg(json_build_object('answer_id', a.id, 'text', a.text, 'color', a.color, 'count', COALESCE(pa.cnt, 0), 'is_correct', a.is_correct))
-      FROM public.answers a LEFT JOIN (SELECT answer_id, COUNT(*) as cnt FROM public.player_answers WHERE question_id = v_game.current_question_id GROUP BY answer_id) pa ON pa.answer_id = a.id
+      FROM public.answers a
+      LEFT JOIN (
+        SELECT pa.answer_id, COUNT(*) as cnt
+        FROM public.player_answers pa
+        JOIN public.player_sessions ps ON ps.id = pa.player_session_id
+        WHERE pa.question_id = v_game.current_question_id
+          AND ps.game_session_id = p_game_session_id
+        GROUP BY pa.answer_id
+      ) pa ON pa.answer_id = a.id
       WHERE a.question_id = v_game.current_question_id),
     'leaderboard', (SELECT json_agg(row_data ORDER BY ts DESC)
       FROM (SELECT json_build_object('player_session_id', ps.id, 'nickname', ps.nickname, 'avatar_url', ps.avatar_url, 'total_score', ps.total_score, 'streak', ps.streak,

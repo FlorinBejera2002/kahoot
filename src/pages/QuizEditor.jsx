@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
-import { Plus, Trash2, Save, ArrowLeft, GripVertical, Check, Image, Clock } from 'lucide-react';
+import { Plus, Trash2, Save, ArrowLeft, GripVertical, Check, Image, Clock, Settings } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { uploadQuizImage } from '../utils/avatars';
 import { COLOR_ORDER, TIME_OPTIONS } from '../lib/constants';
+import Modal from '../components/ui/Modal';
 import toast from 'react-hot-toast';
 
 const COLOR_STYLES = {
@@ -32,10 +33,13 @@ export default function QuizEditor() {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [isPublic, setIsPublic] = useState(false);
+  const [showImagesToPlayers, setShowImagesToPlayers] = useState(true);
+  const [manualCountdownStart, setManualCountdownStart] = useState(true);
   const [questions, setQuestions] = useState([]);
   const [sel, setSel] = useState(0);
   const [saving, setSaving] = useState(false);
   const [quizId, setQuizId] = useState(isNew ? null : id);
+  const [showSettings, setShowSettings] = useState(false);
 
   useEffect(() => {
     if (!isNew) loadQuiz();
@@ -48,6 +52,8 @@ export default function QuizEditor() {
     setTitle(data.title);
     setDescription(data.description || '');
     setIsPublic(data.is_public);
+    setShowImagesToPlayers(data.show_images_to_players ?? true);
+    setManualCountdownStart(data.manual_countdown_start ?? true);
     setQuestions(data.questions.sort((a, b) => a.order_index - b.order_index).map((q) => ({
       ...q, answers: q.answers.sort((a, b) => a.order_index - b.order_index),
     })));
@@ -60,11 +66,25 @@ export default function QuizEditor() {
       let cid = quizId;
       if (!cid) {
         const { data, error } = await supabase.from('quizzes')
-          .insert({ title, description, is_public: isPublic }).select().single();
+          .insert({
+            title,
+            description,
+            is_public: isPublic,
+            show_images_to_players: showImagesToPlayers,
+            manual_countdown_start: manualCountdownStart,
+          })
+          .select()
+          .single();
         if (error) throw error;
         cid = data.id; setQuizId(cid);
       } else {
-        await supabase.from('quizzes').update({ title, description, is_public: isPublic }).eq('id', cid);
+        await supabase.from('quizzes').update({
+          title,
+          description,
+          is_public: isPublic,
+          show_images_to_players: showImagesToPlayers,
+          manual_countdown_start: manualCountdownStart,
+        }).eq('id', cid);
       }
 
       await supabase.from('questions').delete().eq('quiz_id', cid);
@@ -150,20 +170,19 @@ export default function QuizEditor() {
           <input type="text" value={title} onChange={(e) => setTitle(e.target.value)}
             className="bg-transparent text-xl font-bold font-display text-center text-gray-900 dark:text-white focus:outline-none border-b-2 border-transparent hover:border-gray-200 dark:hover:border-gray-600 focus:border-primary px-4 py-1"
             placeholder="Quiz Title" />
-          <button onClick={saveQuiz} disabled={saving} className="btn-primary text-sm flex items-center gap-2">
-            {saving ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Save size={16} />} Save
-          </button>
+          <div className="flex items-center gap-2">
+            <button onClick={() => setShowSettings(true)} className="btn-secondary text-sm flex items-center gap-2 py-2">
+              <Settings size={16} /> Settings
+            </button>
+            <button onClick={saveQuiz} disabled={saving} className="btn-primary text-sm flex items-center gap-2">
+              {saving ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Save size={16} />} Save
+            </button>
+          </div>
         </div>
       </header>
 
       <div className="flex-1 flex max-w-7xl mx-auto w-full">
         <aside className="w-64 border-r border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 overflow-y-auto transition-colors">
-          <textarea value={description} onChange={(e) => setDescription(e.target.value)}
-            placeholder="Description (optional)" className="input-field text-sm resize-none h-16 mb-2" />
-          <label className="flex items-center gap-2 mb-4 text-sm text-gray-500 dark:text-gray-400 cursor-pointer">
-            <input type="checkbox" checked={isPublic} onChange={(e) => setIsPublic(e.target.checked)} className="rounded accent-primary" /> Public quiz
-          </label>
-
           <DragDropContext onDragEnd={handleDragEnd}>
             <Droppable droppableId="questions">
               {(provided) => (
@@ -260,6 +279,49 @@ export default function QuizEditor() {
           )}
         </main>
       </div>
+
+      <Modal open={showSettings} onClose={() => setShowSettings(false)} title="Quiz Settings">
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Description</label>
+            <textarea value={description} onChange={(e) => setDescription(e.target.value)}
+              placeholder="Description (optional)" className="input-field text-sm resize-none h-20" />
+          </div>
+
+          <label className="flex items-center gap-3 cursor-pointer">
+            <input type="checkbox" checked={isPublic} onChange={(e) => setIsPublic(e.target.checked)} className="rounded accent-primary w-4 h-4" />
+            <div>
+              <p className="text-sm font-medium text-gray-900 dark:text-white">Public quiz</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">Visible to everyone</p>
+            </div>
+          </label>
+
+          <label className="flex items-center gap-3 cursor-pointer">
+            <input type="checkbox" checked={showImagesToPlayers} onChange={(e) => setShowImagesToPlayers(e.target.checked)} className="rounded accent-primary w-4 h-4" />
+            <div>
+              <p className="text-sm font-medium text-gray-900 dark:text-white">Show images to players</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">Question images appear on player screens</p>
+            </div>
+          </label>
+
+          <label className="flex items-center gap-3 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={manualCountdownStart}
+              onChange={(e) => setManualCountdownStart(e.target.checked)}
+              className="rounded accent-primary w-4 h-4"
+            />
+            <div>
+              <p className="text-sm font-medium text-gray-900 dark:text-white">Host starts countdown manually</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">Pause on each question until host triggers the 3-2-1 countdown</p>
+            </div>
+          </label>
+
+          <div className="flex justify-end pt-2">
+            <button onClick={() => setShowSettings(false)} className="btn-primary text-sm">Done</button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }

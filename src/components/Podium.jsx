@@ -9,8 +9,35 @@ const CONFIG = [
   { place: 3, h: 'h-20', label: '3rd', grad: 'from-amber-600 to-amber-700', medal: '\uD83E\uDD49' },
 ];
 
-export default function Podium({ players = [] }) {
-  const ordered = [players[1], players[0], players[2]].filter(Boolean);
+const EMPTY_PLAYERS = [];
+
+export default function Podium({ players }) {
+  const safePlayers = players || EMPTY_PLAYERS;
+  const podiumPlayers = safePlayers.slice(0, 3);
+  const slots = { 1: null, 2: null, 3: null };
+
+  podiumPlayers.forEach((player, index) => {
+    const parsedRank = Number(player?.rank);
+    const preferredPlace = Number.isInteger(parsedRank) && parsedRank >= 1 && parsedRank <= 3
+      ? parsedRank
+      : null;
+
+    if (preferredPlace && !slots[preferredPlace]) {
+      slots[preferredPlace] = player;
+      return;
+    }
+
+    const fallbackPlace = index + 1;
+    if (!slots[fallbackPlace]) {
+      slots[fallbackPlace] = player;
+      return;
+    }
+
+    const firstEmptyPlace = [1, 2, 3].find((place) => !slots[place]);
+    if (firstEmptyPlace) slots[firstEmptyPlace] = player;
+  });
+
+  const ordered = [slots[2], slots[1], slots[3]];
 
   return (
     <div className="flex flex-col items-center w-full max-w-lg mx-auto">

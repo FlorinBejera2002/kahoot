@@ -17,8 +17,12 @@ export default function JoinGame() {
   const [nickname, setNickname] = useState('');
   const [avatarUrl, setAvatarUrl] = useState('');
   const [joining, setJoining] = useState(false);
-  const { setPlayerSession, setGameSession } = useGame();
+  const { setPlayerSession, setGameSession, resetGame } = useGame();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    resetGame();
+  }, [resetGame]);
 
   useEffect(() => {
     const pinParam = searchParams.get('pin');

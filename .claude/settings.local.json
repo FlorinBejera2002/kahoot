@@ -3,7 +3,8 @@
     "allow": [
       "WebFetch(domain:amicustm.ro)",
       "Bash(find C:\\\\Users\\\\flori\\\\OneDrive\\\\Documente\\\\kahoot-clone\\\\src\\\\hooks:*)",
-      "Bash(cd /c/Users/flori/OneDrive/Documente/kahoot-clone && npm run build 2>&1)"
+      "Bash(cd /c/Users/flori/OneDrive/Documente/kahoot-clone && npm run build 2>&1)",
+      "Bash(grep:*)"
     ]
   }
 }
