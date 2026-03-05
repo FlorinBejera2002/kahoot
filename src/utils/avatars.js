@@ -1,15 +1,26 @@
 import { supabase } from '../lib/supabase';
-import { DEFAULT_AVATAR_COUNT } from '../lib/constants';
 
-export function getDefaultAvatarUrls() {
-  const urls = [];
-  for (let i = 1; i <= DEFAULT_AVATAR_COUNT; i++) {
-    const { data } = supabase.storage
-      .from('avatars')
-      .getPublicUrl(`defaults/default-${i}.svg`);
-    urls.push(data.publicUrl);
-  }
-  return urls;
+export async function getDefaultAvatarUrls() {
+  const { data, error } = await supabase.storage
+    .from('avatars')
+    .list('defaults', { limit: 1000, sortBy: { column: 'name', order: 'asc' } });
+
+  if (error) throw error;
+
+  return (data || [])
+    .filter((file) => /\.(jpg|jpeg|png|webp|gif)$/i.test(file.name))
+    .sort((a, b) => {
+      const aMatch = a.name.match(/^default-(\d+)\./i);
+      const bMatch = b.name.match(/^default-(\d+)\./i);
+      if (aMatch && bMatch) return Number(aMatch[1]) - Number(bMatch[1]);
+      return a.name.localeCompare(b.name);
+    })
+    .map((file) => {
+      const { data: publicUrlData } = supabase.storage
+        .from('avatars')
+        .getPublicUrl(`defaults/${file.name}`);
+      return publicUrlData.publicUrl;
+    });
 }
 
 export async function uploadAvatar(userId, file) {

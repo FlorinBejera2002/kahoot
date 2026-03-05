@@ -13,6 +13,7 @@ const SIZES = {
   md: 'w-20 h-20 text-2xl',
   lg: 'w-[120px] h-[120px] text-4xl',
 };
+const SHAPE_CLASS = 'rounded-xl';
 
 export default function Avatar({ src, name = '', size = 'sm', className = '' }) {
   const cls = SIZES[size] || SIZES.sm;
@@ -24,14 +25,14 @@ export default function Avatar({ src, name = '', size = 'sm', className = '' }) 
       <img
         src={src}
         alt={name}
-        className={`${cls} rounded-full object-cover border-2 border-gray-200 dark:border-gray-600 flex-shrink-0 ${className}`}
+        className={`${cls} ${SHAPE_CLASS} object-cover border-2 border-gray-200 dark:border-gray-600 flex-shrink-0 ${className}`}
       />
     );
   }
 
   return (
     <div
-      className={`${cls} rounded-full border-2 border-white dark:border-gray-700 flex items-center justify-center font-bold text-white flex-shrink-0 shadow-sm ${className}`}
+      className={`${cls} ${SHAPE_CLASS} border-2 border-white dark:border-gray-700 flex items-center justify-center font-bold text-white flex-shrink-0 shadow-sm ${className}`}
       style={{ backgroundColor: bg }}
       role="img"
       aria-label={`Avatar for ${name}`}
